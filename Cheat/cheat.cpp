@@ -76,26 +76,32 @@ bool Cheat::Renderer::Drawing::Render3DBox(AController*& controller, FVector& or
     return true;
 }
 
-bool Cheat::Renderer::Drawing::RenderSkeleton(AController* controller, ACharacter* actor, FMatrix& comp2world, const int* bones, int size, ImVec4& color)
+bool Cheat::Renderer::Drawing::RenderSkeleton(AController* controller, ACharacter* actor, FMatrix& comp2world, std::pair<int*, int>* skeleton, int size, ImVec4& color)
 {
-    FVector2D previousBone;
-    for (auto i = 0; i < size; i++)
+    
+    for (auto s = 0; s < size; s++)
     {
+        auto& bone = skeleton[s];
+        FVector2D previousBone;
+        for (auto i = 0; i < bone.second; i++)
+        {
+            FVector loc;
+            if (!actor->GetBone(bone.first[i], loc, comp2world)) return false;
+            FVector2D screen;
+            if (!controller->ProjectWorldLocationToScreen(loc, &screen)) return false;
+            if (previousBone.Length() == 0) {
+                previousBone = screen;
+            }
+            else {
+                auto ImScreen1 = *reinterpret_cast<ImVec2*>(&previousBone);
+                auto ImScreen2 = *reinterpret_cast<ImVec2*>(&screen);
+                ImGui::GetCurrentWindow()->DrawList->AddLine(ImScreen1, ImScreen2, ImGui::GetColorU32(color));
+                previousBone = screen;
+            }
+        }
 
-        FVector loc;
-        if (!actor->GetBone(bones[i], loc, comp2world)) return false;
-        FVector2D screen;
-        if (!controller->ProjectWorldLocationToScreen(loc, &screen)) return false;
-        if (previousBone.Length() == 0) {
-            previousBone = screen;
-        }
-        else {
-            auto ImScreen1 = *reinterpret_cast<ImVec2*>(&previousBone);
-            auto ImScreen2 = *reinterpret_cast<ImVec2*>(&screen);
-            ImGui::GetCurrentWindow()->DrawList->AddLine(ImScreen1, ImScreen2, ImGui::GetColorU32(color));
-            previousBone = screen;
-        }
     }
+    
     return true;
 }
 
@@ -562,21 +568,21 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 {
                                     auto mesh = actor->Mesh;
                                     if (!actor->Mesh) continue;
+
+
+                                    int bodyHead[] = { 4, 5, 6, 51, 7, 6, 80, 7, 8, 9 };
+                                    int neckHandR[] = { 80, 81, 82, 83, 84 };
+                                    int neckHandL[] = { 51, 52, 53, 54, 55 };
+                                    int bodyFootR[] = { 4, 111, 112, 113, 114 };
+                                    int bodyFootL[] = { 4, 106, 107, 108, 109 };
+
+                                    std::pair<int*, int> skeleton[] = { {bodyHead, 10}, {neckHandR, 5}, {neckHandL, 5}, {bodyFootR, 5}, {bodyFootL, 5} };
+
+
                                     
-
-                                    const int bodyHead[] = {4, 5, 6, 51, 7, 6, 80, 7, 8, 9};
-                                    const int neckHandR[] = { 80, 81, 82, 83, 84 };
-                                    const int neckHandL[] = { 51, 52, 53, 54, 55 };
-                                    const int bodyFootR[] = { 4, 111, 112, 113, 114 };
-                                    const int bodyFootL[] = { 4, 106, 107, 108, 109 };
-
                                     auto comp2world = mesh->K2_GetComponentToWorld().ToMatrixWithScale();
 
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyHead, 10, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandR, 5, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandL, 5, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootR, 5, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootL, 5, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, skeleton, 5, col)) continue;
 
                                    
                                 }
@@ -686,17 +692,18 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 {
                                     auto mesh = actor->Mesh;
                                     if (!actor->Mesh) continue;
-                                    const int bodyHead[] = { 4, 5, 6, 7, 8, 9 };
-                                    const int neckHandR[] = { 7, 41, 42, 43 };
-                                    const int neckHandL[] = { 7, 12, 13, 14 };
-                                    const int bodyFootR[] = { 4, 71, 72, 73, 74 };
-                                    const int bodyFootL[] = { 4, 66, 67, 68, 69 };
+
+                                    int bodyHead[] = { 4, 5, 6, 7, 8, 9 };
+                                    int neckHandR[] = { 7, 41, 42, 43 };
+                                    int neckHandL[] = { 7, 12, 13, 14 };
+                                    int bodyFootR[] = { 4, 71, 72, 73, 74 };
+                                    int bodyFootL[] = { 4, 66, 67, 68, 69 };
+
+                                    std::pair<int*, int> skeleton[] = { {bodyHead, 6}, {neckHandR, 4}, {neckHandL, 4}, {bodyFootR, 5}, {bodyFootL, 5} };
+
                                     auto comp2world = mesh->K2_GetComponentToWorld().ToMatrixWithScale();
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyHead, 6, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandR, 4, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandL, 4, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootR, 5, col)) continue;
-                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootL, 5, col)) continue;
+
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, skeleton, 5, col)) continue;
 
                                     /*for (auto i = 0; i < 122; i++)
                                     {
