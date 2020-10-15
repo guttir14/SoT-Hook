@@ -450,7 +450,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 continue;
                             }
 
-                            if (cfg.visuals.players.bEnable && actor->isPlayer() /* && actor != localCharacter */ && !actor->IsDead())
+                            if (cfg.visuals.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
                             {
 
                                 auto teammate = UCrewFunctions::AreCharactersInSameCrew(actor, localCharacter);
