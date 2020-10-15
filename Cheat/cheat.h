@@ -19,6 +19,7 @@ private:
 			static void RenderText(char* text, FVector2D& pos, bool outlined, bool centered);
 			static void Render2DBox(FVector2D& top, FVector2D& bottom, float height, float width, ImVec4& color);
 			static bool Render3DBox(AController*& controller, FVector& origin, FVector& extent, FRotator& rotation, ImVec4& color);
+			static bool RenderSkeleton(AController* controller, ACharacter* actor, FMatrix& comp2world, const int* bones, int size, ImVec4& color);
 			static bool RenderColorBar(FVector& origin, float size,  ImU32*& colors, int n);
 		};
 	private:
@@ -28,7 +29,7 @@ private:
 		static inline ID3D11Device* device = nullptr;
 		static inline ID3D11DeviceContext* context = nullptr;
 		static inline ID3D11RenderTargetView* renderTargetView = nullptr;
-		static inline bool bGameInput = false;
+		static inline bool bGameInput = true;
 		static inline WNDPROC WndProcOriginal = nullptr;
 		static inline HWND gameWindow;
 		static inline ImFont* Arial;

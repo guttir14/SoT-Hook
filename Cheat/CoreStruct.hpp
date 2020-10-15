@@ -351,7 +351,7 @@ struct FMatrix
 {
 	union
 	{
-		float M[4][4];
+		__declspec(align(16)) float M[4][4];
 	};
 
 	FORCEINLINE void VectorMatrixMultiply(void* Result, const void* Matrix1, const void* Matrix2)
@@ -401,9 +401,11 @@ struct FMatrix
 
 struct FTransform
 {
-	FQuat	Rotation;
-	FVector	Translation;
-	FVector	Scale3D;
+	struct FQuat Rotation;
+	struct FVector Translation;
+	unsigned char UnknownData00[0x4];
+	struct FVector Scale3D;
+	unsigned char UnknownData01[0x4];
 
 
 	FORCEINLINE FMatrix ToMatrixWithScale() const

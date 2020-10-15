@@ -5,7 +5,6 @@
 #include <string>
 #include <math.h> 
 
-
 struct FName
 {
 	INT32 ComparisonIndex;
@@ -332,6 +331,8 @@ struct UHealthComponent {
 struct USkeletalMeshComponent {
 	char pad[0x590];
 	TArray<FTransform> SpaceBasesArray[2];
+	uint32_t CurrentEditableSpaceBases;
+	uint32_t CurrentReadSpaceBases;
 
 	FName GetBoneName(int BoneIndex)
 	{
@@ -550,25 +551,13 @@ public:
 		return params;
 	}
 
-	bool GetBone(int id, FVector* pos, FMatrix& componentToWorld) {
-		auto bones = Mesh->SpaceBasesArray[0];
+	bool GetBone(int id, FVector& pos, FMatrix& componentToWorld) {
+		auto bones = Mesh->SpaceBasesArray[Mesh->CurrentReadSpaceBases];
 		if (id >= bones.Count) return false;
 		const auto& bone = bones[id];
 		auto boneMatrix = bone.ToMatrixWithScale();
 		auto world = boneMatrix * componentToWorld;
-		*pos = { world.M[3][0], world.M[3][1], world.M[3][2] };
-		return true;
-	}
-
-	bool GetBone2(int id, FVector* pos) {
-		if (!Mesh) return false;
-		auto bones = Mesh->SpaceBasesArray[1];
-		if (id >= bones.Count) return false;
-		const auto& bone = bones[id];
-		auto boneMatrix = bone.ToMatrixWithScale();
-		auto compMatrix = Mesh->K2_GetComponentToWorld().ToMatrixWithScale();
-		auto world = boneMatrix * compMatrix;
-		*pos = { world.M[3][0], world.M[3][1], world.M[3][2] };
+		pos = { world.M[3][0], world.M[3][1], world.M[3][2] };
 		return true;
 	}
 

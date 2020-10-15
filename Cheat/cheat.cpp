@@ -76,6 +76,29 @@ bool Cheat::Renderer::Drawing::Render3DBox(AController*& controller, FVector& or
     return true;
 }
 
+bool Cheat::Renderer::Drawing::RenderSkeleton(AController* controller, ACharacter* actor, FMatrix& comp2world, const int* bones, int size, ImVec4& color)
+{
+    FVector2D previousBone;
+    for (auto i = 0; i < size; i++)
+    {
+
+        FVector loc;
+        if (!actor->GetBone(bones[i], loc, comp2world)) return false;
+        FVector2D screen;
+        if (!controller->ProjectWorldLocationToScreen(loc, &screen)) return false;
+        if (previousBone.Length() == 0) {
+            previousBone = screen;
+        }
+        else {
+            auto ImScreen1 = *reinterpret_cast<ImVec2*>(&previousBone);
+            auto ImScreen2 = *reinterpret_cast<ImVec2*>(&screen);
+            ImGui::GetCurrentWindow()->DrawList->AddLine(ImScreen1, ImScreen2, ImGui::GetColorU32(color));
+            previousBone = screen;
+        }
+    }
+    return true;
+}
+
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -313,6 +336,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 auto actors = level->AActors;
                 if (!actors.Data) continue;
 
+                // todo: make functions for similar code 
                 for (auto a = 0; a < actors.Count; a++)
                 {
                     auto actor = actors[a];
@@ -426,7 +450,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 continue;
                             }
 
-                            if (cfg.visuals.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
+                            if (cfg.visuals.players.bEnable && actor->isPlayer() /* && actor != localCharacter */ && !actor->IsDead())
                             {
 
                                 auto teammate = UCrewFunctions::AreCharactersInSameCrew(actor, localCharacter);
@@ -538,20 +562,23 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 {
                                     auto mesh = actor->Mesh;
                                     if (!actor->Mesh) continue;
-                                    auto compMatrix = mesh->K2_GetComponentToWorld().ToMatrixWithScale();
-                                    for (auto i = 0; i < 122; i++)
-                                    {
-                                        FVector pos;
-                                        if (actor->GetBone(i, &pos, compMatrix))
-                                        {
-                                            FVector2D screen;
-                                            if (!localController->ProjectWorldLocationToScreen(pos, &screen)) continue;
-                                            char text[0x30];
-                                            auto len = sprintf_s(text, "%d", i);
-                                            Drawing::RenderText(text, screen);
-                                        };
+                                    
 
-                                    }
+                                    const int bodyHead[] = {4, 5, 6, 51, 7, 6, 80, 7, 8, 9};
+                                    const int neckHandR[] = { 80, 81, 82, 83, 84 };
+                                    const int neckHandL[] = { 51, 52, 53, 54, 55 };
+                                    const int bodyFootR[] = { 4, 111, 112, 113, 114 };
+                                    const int bodyFootL[] = { 4, 106, 107, 108, 109 };
+
+                                    auto comp2world = mesh->K2_GetComponentToWorld().ToMatrixWithScale();
+
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyHead, 10, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandR, 5, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandL, 5, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootR, 5, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootL, 5, col)) continue;
+
+                                   
                                 }
                             
 
@@ -651,8 +678,39 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     }
                                     }
 
+
+
                                 }
 
+                                if (cfg.visuals.skeletons.bSkeleton)
+                                {
+                                    auto mesh = actor->Mesh;
+                                    if (!actor->Mesh) continue;
+                                    const int bodyHead[] = { 4, 5, 6, 7, 8, 9 };
+                                    const int neckHandR[] = { 7, 41, 42, 43 };
+                                    const int neckHandL[] = { 7, 12, 13, 14 };
+                                    const int bodyFootR[] = { 4, 71, 72, 73, 74 };
+                                    const int bodyFootL[] = { 4, 66, 67, 68, 69 };
+                                    auto comp2world = mesh->K2_GetComponentToWorld().ToMatrixWithScale();
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyHead, 6, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandR, 4, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, neckHandL, 4, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootR, 5, col)) continue;
+                                    if (!Drawing::RenderSkeleton(localController, actor, comp2world, bodyFootL, 5, col)) continue;
+
+                                    /*for (auto i = 0; i < 122; i++)
+                                    {
+                                        FVector pos;
+                                        if (actor->GetBone(i, pos, comp2world))
+                                        {
+                                            FVector2D screen;
+                                            if (!localController->ProjectWorldLocationToScreen(pos, &screen)) continue;
+                                            char text[0x30];
+                                            auto len = sprintf_s(text, "%d", i);
+                                            Drawing::RenderText(text, screen);
+                                        };
+                                    }*/
+                                }
                                 continue;
                             }
 
@@ -871,7 +929,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
    
-    static bool bIsOpen = true;
+    static bool bIsOpen = false;
     if (ImGui::IsKeyPressed(VK_INSERT)) {
         if (bIsOpen) {
             bGameInput = true;
@@ -1408,16 +1466,10 @@ void Cheat::Tests()
     auto localCharacter = localController->Character;
     Logger::Log("localCharacter: %p\n", localCharacter);
     if (!localCharacter) return;
-    auto item = localCharacter->GetWieldedItem();
-    Logger::Log("CurrentlyWieldedItem: %p\n", item);
-    if (item && item->isWeapon()) {
-        auto localWeapon = *reinterpret_cast<AProjectileWeapon**>(&item);
-        Logger::Log("AProjectileWeapon: %p\n", localWeapon);
-        Logger::Log("AmmoParams.Velocity: %f\n", localWeapon->WeaponParameters.AmmoParams.Velocity);
-        Logger::Log("ProjectileMaximumRange: %f\n", localWeapon->WeaponParameters.ProjectileMaximumRange);
-    }
-
-    
+    auto localMesh = localCharacter->Mesh;
+    if (!localMesh) return;
+    auto comp2world = localMesh->K2_GetComponentToWorld();
+    Logger::Log("%f %f %f", comp2world.Scale3D.X, comp2world.Scale3D.Y, comp2world.Scale3D.Z);
 }
 
 
