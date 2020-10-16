@@ -16,10 +16,10 @@ private:
 	class Renderer {
 	private:
 		struct Drawing {
-			static void RenderText(char* text, FVector2D& pos, bool outlined, bool centered);
-			static void Render2DBox(FVector2D& top, FVector2D& bottom, float height, float width, ImVec4& color);
-			static bool Render3DBox(AController*& controller, FVector& origin, FVector& extent, FRotator& rotation, ImVec4& color);
-			static bool RenderSkeleton(AController* controller, ACharacter* actor, FMatrix& comp2world, std::pair<int*, int>* skeleton, int size, ImVec4& color);
+			static void RenderText(const char* text, const FVector2D& pos, const ImVec4& color, const bool outlined, const bool centered);
+			static void Render2DBox(const FVector2D& top, const FVector2D& bottom, const float height, const float width, const ImVec4& color);
+			static bool Render3DBox(AController* constcontroller, const FVector& origin, const FVector& extent, const FRotator& rotation, const ImVec4& color);
+			static bool RenderSkeleton(AController* const controller, USkeletalMeshComponent* const mesh, const FMatrix& comp2world, const std::pair<const BYTE*, const BYTE>* skeleton, int size, const ImVec4& color);
 			static bool RenderColorBar(FVector& origin, float size,  ImU32*& colors, int n);
 		};
 	private:

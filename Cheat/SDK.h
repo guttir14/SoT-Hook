@@ -18,6 +18,12 @@ struct FName
 		return NameEntry->GetAnsiName();
 	}
 
+	const char* GetNameFast() const {
+		auto NameEntry = (*GNames)->GetById(ComparisonIndex);
+		if (!NameEntry) return nullptr;
+		return NameEntry->GetAnsiName();
+	}
+
 	const std::string GetName() const {
 		auto NameEntry = (*GNames)->GetById(ComparisonIndex);
 		if (!NameEntry) return std::string();
@@ -66,6 +72,8 @@ public:
 	UObject* Outer;
 
 	std::string GetName() const;
+
+	const char* GetNameFast() const;
 
 	std::string GetFullName() const;
 
@@ -166,11 +174,11 @@ public:
 	void* Func; //0x00B0
 };
 
-template<typename Fn>
-inline void ProcessEvent(Fn* obj, UFunction* function, void* parms)
+
+inline void ProcessEvent(void* obj, UFunction* function, void* parms) 
 {
 	auto vtable = *reinterpret_cast<void***>(obj);
-	reinterpret_cast<void(*)(Fn*, class UFunction*, void*)>(vtable[59])(obj, function, parms);
+	reinterpret_cast<void(*)(void*, UFunction*, void*)>(vtable[59])(obj, function, parms);
 }
 
 class UClass : public UStruct
@@ -240,15 +248,7 @@ struct APlayerCameraManager {
 	}
 };
 
-class AController {
-
-public:
-	struct ProjectWorldLocationToScreen_Params
-	{
-		FVector WorldLocation;
-		FVector2D ScreenLocation;
-		bool ReturnValue = false;
-	};
+struct AController {
 
 	char pad_0000[0x460]; //0x0000
 	void* Pawn; //0x0460
@@ -266,12 +266,18 @@ public:
 	FRotator RotationInput; // 0x618
 
 
-	bool ProjectWorldLocationToScreen(const FVector& WorldLocation, FVector2D* ScreenLocation) {
+	bool ProjectWorldLocationToScreen(const FVector& WorldLocation, FVector2D& ScreenLocation) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerController.ProjectWorldLocationToScreen");
-		ProjectWorldLocationToScreen_Params params;
+		struct
+		{
+			FVector WorldLocation;
+			FVector2D ScreenLocation;
+			bool ReturnValue = false;
+		} params;
+
 		params.WorldLocation = WorldLocation;
 		ProcessEvent(this, fn, &params);
-		*ScreenLocation = params.ScreenLocation;
+		ScreenLocation = params.ScreenLocation;
 		return params.ReturnValue;
 	}
 
@@ -304,7 +310,7 @@ public:
 		ProcessEvent(this, fn, &NewFOV);
 	}
 
-	bool LineOfSightTo(ACharacter* Other, const struct FVector& ViewPoint, bool bAlternateChecks ) {
+	bool LineOfSightTo(ACharacter* Other, const FVector& ViewPoint, const bool bAlternateChecks ) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Controller.LineOfSightTo");
 		struct {
 			ACharacter* Other = nullptr;
@@ -321,6 +327,12 @@ public:
 };
 
 struct UHealthComponent {
+	float GetMaxHealth() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.HealthComponent.GetMaxHealth");
+		float health = 0.f;
+		ProcessEvent(this, fn, &health);
+		return health;
+	}
 	float GetCurrentHealth() {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.HealthComponent.GetCurrentHealth");
 		float health = 0.f;
@@ -353,6 +365,18 @@ struct USkeletalMeshComponent {
 		ProcessEvent(this, fn, &CompToWorld);
 		return CompToWorld;
 	}
+
+
+
+	bool GetBone(const int id, const FMatrix& componentToWorld, FVector& pos) {
+		auto bones = SpaceBasesArray[CurrentReadSpaceBases];
+		if (id >= bones.Count) return false;
+		const auto& bone = bones[id];
+		auto boneMatrix = bone.ToMatrixWithScale();
+		auto world = boneMatrix * componentToWorld;
+		pos = { world.M[3][0], world.M[3][1], world.M[3][2] };
+		return true;
+	}
 };
 
 struct AShipInternalWater {
@@ -378,6 +402,35 @@ struct UDrowningComponent {
 	}
 };
 
+struct AFauna {
+	char pad1[0x888];
+	FString* DisplayName; // 0x0888
+	char pad2[0xE0];
+	UHealthComponent* HealthComponent; // 0x0970 
+};
+
+enum class ESwimmingCreatureType : uint8_t
+{
+	SwimmingCreature = 0,
+	Shark = 1,
+	TinyShark = 2,
+	Siren = 3,
+	ESwimmingCreatureType_MAX = 4
+};
+
+struct ASharkPawn {
+	char pad1[0x0538];
+	USkeletalMeshComponent* Mesh; // 0x0538
+	char pad2[0x4C];
+	ESwimmingCreatureType SwimmingCreatureType; // 0x058C
+};
+
+
+struct FAIEncounterSpecification
+{
+	char pad[0x80];
+	FString* LocalisableName; // 0x0080
+};
 
 
 struct UItemDesc {
@@ -465,7 +518,7 @@ public:
 	char pad6[0x410]; // 0x8B0
 	UDrowningComponent* DrowningComponent; // 0xCC0
 
-	void GetActorBounds(bool bOnlyCollidingComponents, struct FVector* Origin, struct FVector* BoxExtent) {
+	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.GetActorBounds");
 		struct
 		{
@@ -474,14 +527,12 @@ public:
 			FVector BoxExtent;
 		} params;
 
-		if (!Origin || !BoxExtent) return;
-
 		params.bOnlyCollidingComponents = bOnlyCollidingComponents;
 
 		ProcessEvent(this, fn, &params);
 
-		*Origin = params.Origin;
-		*BoxExtent = params.BoxExtent;
+		Origin = params.Origin;
+		BoxExtent = params.BoxExtent;
 	}
 
 	ACharacter* GetAttachParentActor() {
@@ -496,14 +547,14 @@ public:
 		return WieldedItemComponent->CurrentlyWieldedItem;
 	}
 
-	FVector& GetVelocity() {
+	FVector GetVelocity() {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.GetVelocity");
 		FVector velocity;
 		ProcessEvent(this, fn, &velocity);
 		return velocity;
 	}
 
-	AItemInfo* GetItemInfo() {
+	AItemInfo* GetItemInfo()  {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.ItemProxy.GetItemInfo");
 		AItemInfo* info = nullptr;
 		ProcessEvent(this, fn, &info);
@@ -526,8 +577,6 @@ public:
 		return isDead;
 	}
 
-	
-
 	bool IsInWater() {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.AthenaCharacter.IsInWater");
 		bool isInWater = false;
@@ -535,52 +584,51 @@ public:
 		return isInWater;
 	}
 
-	
-
-	FRotator& K2_GetActorRotation() {
+	FRotator K2_GetActorRotation() {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.K2_GetActorRotation");
 		FRotator params;
 		ProcessEvent(this, fn, &params);
 		return params;
 	}
 
-	FVector& K2_GetActorLocation() {
+	FVector K2_GetActorLocation() {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.K2_GetActorLocation");
 		FVector params;
 		ProcessEvent(this, fn, &params);
 		return params;
 	}
 
-	bool GetBone(int id, FVector& pos, FMatrix& componentToWorld) {
-		auto bones = Mesh->SpaceBasesArray[Mesh->CurrentReadSpaceBases];
-		if (id >= bones.Count) return false;
-		const auto& bone = bones[id];
-		auto boneMatrix = bone.ToMatrixWithScale();
-		auto world = boneMatrix * componentToWorld;
-		pos = { world.M[3][0], world.M[3][1], world.M[3][2] };
-		return true;
-	}
-
-	bool isSkeleton() {
+	inline bool isSkeleton() {
 		static auto obj = UObject::FindClass("Class Athena.AthenaAICharacter"); 
 		return IsA(obj);
 	}
-	bool isPlayer() {
+
+	inline bool isPlayer() {
 		static auto obj = UObject::FindClass("Class Athena.AthenaPlayerCharacter");
 		return IsA(obj);
 	}
-	bool isShip() {
+	inline bool isShip() {
 		static auto obj = UObject::FindClass("Class Athena.Ship");
 		return IsA(obj);
 	}
 
-	bool isFarShip() {
+	inline bool isFarShip() {
 		static auto obj = UObject::FindClass("Class Athena.ShipNetProxy");
 		return IsA(obj);
 	}
 
-	bool isItem() {
+	inline bool isItem() {
 		static auto obj = UObject::FindClass("Class Athena.ItemProxy");
+		return IsA(obj);
+	}
+
+	inline bool isShark() {
+		static auto obj = UObject::FindClass("Class Athena.SharkPawn");
+		return IsA(obj);
+	}
+
+	inline bool isAnimal() {
+		static auto obj = UObject::FindClass("Class AthenaAI.Fauna");
 		return IsA(obj);
 	}
 
@@ -596,6 +644,13 @@ public:
 	bool isBuriedTreasure() {
 		static auto obj = UObject::FindClass("Class Athena.BuriedTreasureLocation");
 		return IsA(obj);
+	}
+
+	FAIEncounterSpecification GetAIEncounterSpec() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.AthenaAICharacter.GetAIEncounterSpec");
+		FAIEncounterSpecification spec;
+		ProcessEvent(this, fn, &spec);
+		return spec;
 	}
 	AHullDamage* GetHullDamage() {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.Ship.GetHullDamage");
@@ -755,4 +810,10 @@ struct UWorld {
 	ULevel* CurrentLevel; //0x01B0
 	char pad_01B8[8]; //0x01B8
 	UGameInstance* GameInstance; //0x01C0
+};
+
+
+
+struct Helpers {
+	
 };

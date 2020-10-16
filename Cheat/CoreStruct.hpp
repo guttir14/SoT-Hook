@@ -19,7 +19,7 @@ public:
 		Count = Max = 0;
 	};
 
-	inline T& operator[](int i)
+	inline T& operator[](int i) const
 	{
 		return Data[i];
 	};
@@ -111,9 +111,9 @@ struct FVector
 
     inline FVector(float x, float y, float z) : X(x), Y(y), Z(z) {}
 
-	float Length(void) { return sqrtf(X * X + Y * Y + Z * Z); }
+	float Length(void) const { return sqrtf(X * X + Y * Y + Z * Z); }
 
-	float DistTo(FVector v) { return (*this - v).Length(); }
+	float DistTo(FVector v) const { return (*this - v).Length(); }
 
     inline FVector operator + (const FVector& other) const { return FVector(X + other.X, Y + other.Y, Z + other.Z); }
 

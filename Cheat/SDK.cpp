@@ -18,6 +18,11 @@ std::string UObject::GetName() const
 	return name.substr(pos + 1);
 }
 
+const char* UObject::GetNameFast() const
+{
+	return Name.GetNameFast();
+}
+
 std::string UObject::GetFullName() const
 {
 	
