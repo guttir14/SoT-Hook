@@ -1,14 +1,9 @@
 #pragma once
 #include <windows.h>
-#include <HookLib/HookLib.h>
 #include <Psapi.h>
 #include <d3d11.h>
-#include <iostream>
 #include <mutex>
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_dx11.h>
-#include <imgui/imgui_internal.h>
-#include <imgui\imgui_impl_win32.h>
 #include "SDK.h"
 
 class Cheat {
@@ -26,6 +21,7 @@ private:
 		static inline void** vtable;
 		static inline HRESULT(*PresentOriginal)(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) = nullptr;
 		static inline HRESULT(*ResizeOriginal)(IDXGISwapChain* swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) = nullptr;
+		static inline decltype(SetCursorPos)* SetCursorPosOriginal = nullptr;
 		static inline ID3D11Device* device = nullptr;
 		static inline ID3D11DeviceContext* context = nullptr;
 		static inline ID3D11RenderTargetView* renderTargetView = nullptr;
@@ -36,6 +32,9 @@ private:
 		//static inline ImDrawList* drawList = nullptr;
 	private:
 		static LRESULT WINAPI WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static BOOL WINAPI SetCursorPosHook(int X, int Y);
+		static BOOL WINAPI ShowCursorHook(BOOL bShow);
+		//static HCURSOR WINAPI SetCursorHook(HCURSOR hCursor);
 		static void HookInput();
 		static void RemoveInput();
 		static HRESULT PresentHook(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags);

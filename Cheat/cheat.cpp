@@ -1,10 +1,9 @@
 #include "cheat.h"
-#include <HookLib/HookLib.h>
-#include <condition_variable>
-#include <conio.h>
 #include <filesystem>
-#include <Xinput.h>
-
+#include <imgui/imgui_impl_dx11.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/imgui_impl_win32.h>
+#include <HookLib/HookLib.h>
 
 namespace fs = std::filesystem;
 
@@ -102,7 +101,6 @@ bool Cheat::Renderer::Drawing::RenderSkeleton(AController* const controller, USk
     return true;
 }
 
-
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -111,6 +109,18 @@ LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
     if (bGameInput) return CallWindowProcA(WndProcOriginal, hwnd, uMsg, wParam, lParam);
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
+
+BOOL WINAPI Cheat::Renderer::SetCursorPosHook(int X, int Y)
+{
+    if (bGameInput) return SetCursorPosOriginal(X, Y);
+    return FALSE;
+}
+
+//HCURSOR __stdcall Cheat::Renderer::SetCursorHook(HCURSOR hCursor)
+//{
+//    if (bGameInput) return SetCursorOriginal(hCursor);
+//    return 0;
+//}
 
 void Cheat::Renderer::HookInput()
 {
@@ -171,6 +181,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
         HookInput();
     }
+
+
+
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -829,7 +842,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     {
                                         const BYTE bone1[] = { 26, 25, 24, 23, 22, 21, 20, 19 };
                                         const BYTE bone2[] = { 28, 27, 24 };
-                                        const BYTE bone3[] = { 33, 32, 31, 21, 34, 35, 36 };;
+                                        const BYTE bone3[] = { 33, 32, 31, 21, 34, 35, 36 };
                                         const std::pair<const BYTE*, const BYTE> skeleton[] = { {bone1, 8}, {bone2, 3}, {bone3, 7}};
                                         if (!Drawing::RenderSkeleton(localController, mesh, comp2world, skeleton, 3, col)) continue;
                                         break;
@@ -1052,7 +1065,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         aimBest.delta = UKismetMathLibrary::NormalizedDeltaRotator(UKismetMathLibrary::FindLookAtRotation(cameraLoc, aimBest.location), cameraRot);
                     }
 
-                    auto smoothness = 1 / aimBest.smoothness;
+                    auto smoothness = 1.f / aimBest.smoothness;
                     localController->AddYawInput(aimBest.delta.Yaw * smoothness);
                     localController->AddPitchInput(aimBest.delta.Pitch * -smoothness);
                 }
@@ -1089,14 +1102,14 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     static bool bIsOpen = false;
     if (ImGui::IsKeyPressed(VK_INSERT)) {
         if (bIsOpen) {
+            io.MouseDrawCursor = false;
             bGameInput = true;
             bIsOpen = false;
         }
         else {
-            // todo: load cursor if it was removed by game
+            io.MouseDrawCursor = true;
             bGameInput = false;
             bIsOpen = true;
-
         }
     }
 
@@ -1400,13 +1413,18 @@ inline bool Cheat::Renderer::Init()
 
     Logger::Log("ResizeHook: %p\n", ResizeHook);
 
+    if (!SetHook(SetCursorPos, SetCursorPosHook, reinterpret_cast<void**>(&SetCursorPosOriginal)))
+    {
+        return false;
+    };
+
     return true;
 }
 
 inline bool Cheat::Renderer::Remove()
 {
     Renderer::RemoveInput(); 
-    if (!RemoveHook(PresentOriginal) || !RemoveHook(ResizeOriginal)) 
+    if (!RemoveHook(PresentOriginal) || !RemoveHook(ResizeOriginal) || !RemoveHook(SetCursorPosOriginal))
     {
         return false;
     }

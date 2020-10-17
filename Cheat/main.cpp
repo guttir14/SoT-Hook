@@ -1,6 +1,4 @@
-#include <Windows.h>
 #include "cheat.h"
-
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) 
 {

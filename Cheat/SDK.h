@@ -1,18 +1,20 @@
 #pragma once
-#include <unordered_set>
 #include <Windows.h>
 #include "CoreStruct.hpp"
 #include <string>
-#include <math.h> 
+
+#ifdef _MSC_VER
+#pragma pack(push, 0x8)
+#endif
 
 struct FName
 {
-	INT32 ComparisonIndex;
-	INT32 Number;
+	int ComparisonIndex;
+	int Number;
 
 	static inline TNameEntryArray** GNames = nullptr;
 
-	static std::string GetNameById(INT32 Id) {
+	static std::string GetNameById(int Id) {
 		auto NameEntry = (*GNames)->GetById(Id);
 		if (!NameEntry) return std::string();
 		return NameEntry->GetAnsiName();
@@ -38,19 +40,19 @@ struct FName
 struct FUObjectItem
 {
 	class UObject* Object;
-	INT32 Flags;
-	INT32 ClusterIndex;
-	INT32 SerialNumber;
-	INT32 pad;
+	int Flags;
+	int ClusterIndex;
+	int SerialNumber;
+	int pad;
 };
 
 struct TUObjectArray
 {
 	FUObjectItem* Objects;
-	INT32 MaxElements;
-	INT32 NumElements;
+	int MaxElements;
+	int NumElements;
 
-	inline class UObject* GetByIndex(INT32 index)
+	inline class UObject* GetByIndex(int index)
 	{
 		return Objects[index].Object;
 	}
@@ -65,8 +67,8 @@ public:
 	UObject(UObject* addr) { *this = addr; }
 	static inline TUObjectArray* GObjects = nullptr;
 	void* Vtable;
-	int32_t ObjectFlags;
-	int32_t InternalIndex;
+	int ObjectFlags;
+	int InternalIndex;
 	UClass* Class;
 	FName Name;
 	UObject* Outer;
@@ -127,11 +129,11 @@ public:
 class UProperty : public UField
 {
 public:
-	int32_t ArrayDim;
-	int32_t ElementSize;
+	int ArrayDim;
+	int ElementSize;
 	uint64_t PropertyFlags;
 	char pad[0xC];
-	int32_t Offset_Internal;
+	int Offset_Internal;
 	UProperty* PropertyLinkNext;
 	UProperty* NextRef;
 	UProperty* DestructorLinkNext;
@@ -146,8 +148,8 @@ public:
 
 	UStruct* SuperField;
 	UField* Children;
-	int32_t PropertySize;
-	int32_t MinAlignment;
+	int PropertySize;
+	int MinAlignment;
 	TArray<uint8_t> Script;
 	UProperty* PropertyLink;
 	UProperty* RefLink;
@@ -159,7 +161,7 @@ public:
 class UFunction : public UStruct
 {
 public:
-	uint32_t FunctionFlags;
+	int FunctionFlags;
 	uint16_t RepOffset;
 	uint8_t NumParms;
 	char pad;
@@ -169,7 +171,7 @@ public:
 	uint16_t RPCResponseId;
 	UProperty* FirstPropertyToInit;
 	UFunction* EventGraphFunction; //0x00A0
-	int32_t EventGraphCallOffset;
+	int EventGraphCallOffset;
 	char pad_0x00AC[0x4]; //0x00AC
 	void* Func; //0x00B0
 };
@@ -203,7 +205,7 @@ public:
 
 	FString(const wchar_t* other)
 	{
-		Max = Count = *other ? static_cast<int32_t>(std::wcslen(other)) + 1 : 0;
+		Max = Count = *other ? static_cast<int>(std::wcslen(other)) + 1 : 0;
 
 		if (Count)
 		{
@@ -343,8 +345,8 @@ struct UHealthComponent {
 struct USkeletalMeshComponent {
 	char pad[0x590];
 	TArray<FTransform> SpaceBasesArray[2];
-	uint32_t CurrentEditableSpaceBases;
-	uint32_t CurrentReadSpaceBases;
+	int CurrentEditableSpaceBases;
+	int CurrentReadSpaceBases;
 
 	FName GetBoneName(int BoneIndex)
 	{
@@ -813,7 +815,6 @@ struct UWorld {
 };
 
 
-
-struct Helpers {
-	
-};
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif

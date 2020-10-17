@@ -1,7 +1,9 @@
 #pragma once
+#include <math.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <emmintrin.h>
+
 
 #ifdef _MSC_VER
 	#pragma pack(push, 0x8)
@@ -30,15 +32,15 @@ public:
 	}
 
 	T* Data;
-	INT32 Count;
-	INT32 Max;
+	int Count;
+	int Max;
 };
 
 class FNameEntry
 {
 public:
-	INT32 Index;
-	INT32 pad;
+	int Index;
+	int pad;
 	FNameEntry* HashNext;
 	union
 	{
@@ -46,7 +48,7 @@ public:
 		wchar_t WideName[1024];
 	};
 
-	inline const INT32 GetIndex() const
+	inline const int GetIndex() const
 	{
 		return Index >> 1;
 	}
@@ -73,17 +75,17 @@ class TNameEntryArray
 {
 public:
 
-	inline bool IsValidIndex(INT32 index) const
+	inline bool IsValidIndex(int index) const
 	{
 		return index < NumElements && index >= 0;
 	}
 
-	FNameEntry const* const& GetById(int32_t index) const
+	FNameEntry const* const& GetById(int index) const
 	{
 		return *GetItemPtr(index);
 	}
 
-	inline FNameEntry const* const* GetItemPtr(INT32 Index) const
+	inline FNameEntry const* const* GetItemPtr(int Index) const
 	{
 		const auto ChunkIndex = Index / 16384;
 		const auto WithinChunkIndex = Index % 16384;
@@ -99,8 +101,8 @@ public:
 	}
 
 	FNameEntry** Chunks[ChunkTableSize];
-	static inline INT32 NumElements = 0;
-	static inline INT32 NumChunks = 0;
+	static inline int NumElements = 0;
+	static inline int NumChunks = 0;
 };
 
 struct FVector
@@ -269,24 +271,13 @@ struct FRotator
 };
 
 
-// ScriptStruct CoreUObject.Color
-// 0x0004
-struct FColor
-{
-	unsigned char                                      B;                                                        // 0x0000(0x0001) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	unsigned char                                      G;                                                        // 0x0001(0x0001) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	unsigned char                                      R;                                                        // 0x0002(0x0001) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	unsigned char                                      A;                                                        // 0x0003(0x0001) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-};
 
-// ScriptStruct CoreUObject.LinearColor
-// 0x0010
 struct FLinearColor
 {
-	float                                              R;                                                        // 0x0000(0x0004) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	float                                              G;                                                        // 0x0004(0x0004) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	float                                              B;                                                        // 0x0008(0x0004) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
-	float                                              A;                                                        // 0x000C(0x0004) (Edit, BlueprintVisible, ZeroConstructor, SaveGame, IsPlainOldData)
+	float R;
+	float G; 
+	float B; 
+	float A;
 
 	inline FLinearColor()
 		: R(0), G(0), B(0), A(0)
@@ -457,133 +448,6 @@ struct FTransform
 
 		return OutMatrix;
 	}
-};
-
-
-enum PirateBones {
-	MOVEMENT__Skeleton,
-	SCALE__Skeleton,
-	BASE__Skeleton,
-	UPPER_BODY_LOCK__Skeleton,
-	WAIST__Skeleton,
-	TORSO__Skeleton,
-	CHEST__Skeleton, // center 
-	NECK1__Skeleton,
-	NECK2__Skeleton,
-	HEAD__Skeleton,
-	JAW__Skeleton,
-	MID_FACE_UNDER_CHIN__Skeleton,
-	MID_FACE_LOWERLIP_OUTER__Skeleton,
-	MID_FACE_LOWERLIP_INNER__Skeleton,
-	LF_FACE_LOWERLIP_OUTER__Skeleton,
-	LF_FACE_LOWERLIP_INNER__Skeleton,
-	RT_FACE_LOWERLIP_INNER__Skeleton,
-	RT_FACE_LOWERLIP_OUTER__Skeleton,
-	LF_EYE__Skeleton,
-	MID_FACE_UPPERLIP_OUTER__Skeleton,
-	MID_FACE_NOSE__Skeleton,
-	MID_FACE_UPPERLIP_INNER__Skeleton,
-	LF_FACE_BROW_OUTER__Skeleton,
-	LF_FACE_BROW_MID__Skeleton,
-	LF_FACE_CHEEK_MID__Skeleton,
-	LF_FACE_UPPERLID_MID__Skeleton,
-	LF_FACE_UPPERLID_OUTER__Skeleton,
-	LF_FACE_LOWERLID_OUTER__Skeleton,
-	LF_FACE_LOWERLID_INNER__Skeleton,
-	LF_FACE_MOUTHFOLD_LOWER__Skeleton,
-	LF_FACE_LIPCORNER__Skeleton,
-	LF_FACE_MOUTHFOLD_UPPER__Skeleton,
-	LF_FACE_UPPERLIP_OUTER__Skeleton,
-	LF_FACE_BROW_INNER__Skeleton,
-	LF_FACE_UPPERLID_INNER__Skeleton,
-	LF_FACE_UPPERLIP_INNER__Skeleton,
-	RT_EYE__Skeleton,
-	RT_FACE_BROW_INNER__Skeleton,
-	RT_FACE_BROW_MID__Skeleton,
-	RT_FACE_BROW_OUTER__Skeleton,
-	RT_FACE_CHEEK_MID__Skeleton,
-	RT_FACE_LIPCORNER__Skeleton,
-	RT_FACE_LOWERLID_INNER__Skeleton,
-	RT_FACE_LOWERLID_OUTER__Skeleton,
-	RT_FACE_MOUTHFOLD_LOWER__Skeleton,
-	RT_FACE_MOUTHFOLD_UPPER__Skeleton,
-	RT_FACE_UPPERLID_INNER__Skeleton,
-	RT_FACE_UPPERLID_MID__Skeleton,
-	RT_FACE_UPPERLID_OUTER__Skeleton,
-	RT_FACE_UPPERLIP_INNER__Skeleton,
-	RT_FACE_UPPERLIP_OUTER__Skeleton,
-	LF_CLAVICLE__Skeleton,
-	LF_SHOULDER__Skeleton,
-	LF_ELBOW__Skeleton,
-	LF_WRIST__Skeleton,
-	LF_FINGD_ROOT__Skeleton,
-	LF_FINGD__Skeleton,
-	LF_FINGD1__Skeleton,
-	LF_FINGD2__Skeleton,
-	LF_FINGC_ROOT__Skeleton,
-	LF_FINGC__Skeleton,
-	LF_FINGC1__Skeleton,
-	LF_FINGC2__Skeleton,
-	LF_FINGB__Skeleton,
-	LF_FINGB1__Skeleton,
-	LF_FINGB2__Skeleton,
-	LF_FINGA__Skeleton,
-	LF_FINGA1__Skeleton,
-	LF_FINGA2__Skeleton,
-	LF_THUMB_ROOT__Skeleton,
-	LF_THUMB1__Skeleton,
-	LF_THUMB2__Skeleton,
-	LF_PROP__Skeleton,
-	LF_TWIST_WRIST__Skeleton,
-	LF_TWIST_SHOULDER__Skeleton,
-	CAMERA_ROOT__Skeleton,
-	CAMERA__Skeleton,
-	CAMERA_PROP__Skeleton,
-	LF_CAMERA_IK_HAND__Skeleton,
-	RT_CAMERA_IK_HAND__Skeleton,
-	RT_CLAVICLE__Skeleton,
-	RT_SHOULDER__Skeleton,
-	RT_ELBOW__Skeleton,
-	RT_WRIST__Skeleton,
-	RT_FINGD_ROOT__Skeleton,
-	RT_FINGD__Skeleton,
-	RT_FINGD1__Skeleton,
-	RT_FINGD2__Skeleton,
-	RT_FINGC_ROOT__Skeleton,
-	RT_FINGC__Skeleton,
-	RT_FINGC1__Skeleton,
-	RT_FINGC2__Skeleton,
-	RT_FINGB__Skeleton,
-	RT_FINGB1__Skeleton,
-	RT_FINGB2__Skeleton,
-	RT_FINGA__Skeleton,
-	RT_FINGA1__Skeleton,
-	RT_FINGA2__Skeleton,
-	RT_THUMB_ROOT__Skeleton,
-	RT_THUMB1__Skeleton,
-	RT_THUMB2__Skeleton,
-	RT_PROP__Skeleton,
-	RT_TWIST_WRIST__Skeleton,
-	RT_TWIST_SHOULDER__Skeleton,
-	LF_DRIVEN_CHEST_RISE__Skeleton,
-	RT_DRIVEN_CHEST_RISE__Skeleton,
-	LF_HIP__Skeleton,
-	LF_KNEE__Skeleton,
-	LF_ANKLE__Skeleton,
-	LF_TOE__Skeleton,
-	LF_TWIST_HIP__Skeleton,
-	RT_HIP__Skeleton,
-	RT_KNEE__Skeleton,
-	RT_ANKLE__Skeleton,
-	RT_TOE__Skeleton,
-	RT_TWIST_HIP__Skeleton,
-	LF_DRIVEN_BUTT__Skeleton,
-	RT_DRIVEN_BUTT__Skeleton,
-	LF_IK_FOOT__Skeleton,
-	IK_HANDS__Skeleton,
-	LF_IK_HAND__Skeleton,
-	RT_IK_HAND__Skeleton,
-	RT_IK_FOOT__Skeleton,
 };
 
 #ifdef _MSC_VER
