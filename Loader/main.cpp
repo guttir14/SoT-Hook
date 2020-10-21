@@ -24,13 +24,13 @@ inline DWORD GetProcessIdByName(const char* name) {
     return pid;
 }
 
-inline bool GetFileExtFromDir(const fs::path& dir, const fs::path ext, fs::path& file)
+inline bool GetFileExtFromDir(const fs::path& dir, const char* ext, fs::path& file)
 {
     for (const auto& entry : fs::directory_iterator(dir))
     {
         if (!entry.is_regular_file()) continue;
         const fs::path currentFile = entry.path();
-        if (currentFile.extension() == ext.extension()) 
+        if (currentFile.extension() == ext)
         {
             file = currentFile;
             return true;
@@ -41,7 +41,7 @@ inline bool GetFileExtFromDir(const fs::path& dir, const fs::path ext, fs::path&
 
 inline bool RemoteInject(const HANDLE& process, const std::wstring& mod)
 {
-    auto len = mod.length() * sizeof(wchar_t);
+    auto len = mod.capacity() * sizeof(wchar_t);
     LPVOID alloc = VirtualAllocEx(process, 0, len, MEM_COMMIT, PAGE_READWRITE);
     if (!alloc) return false;
     if (!WriteProcessMemory(process, alloc, mod.data(), len, 0)) return false;
@@ -67,7 +67,11 @@ int main(int argc, const char* argv[]) {
     }
     const fs::path workingDir = fs::path(argv[0]).remove_filename();
     fs::path library;
-    GetFileExtFromDir(workingDir, "filename.dll", library);
+    if (!GetFileExtFromDir(workingDir, ".dll", library))
+    {
+        printf("Couldn't find dynamic library in the current folder\n");
+        return 1;
+    };
     if (!RemoteInject(process, library.wstring()))
     {
         printf("Couldn't inject module\n");

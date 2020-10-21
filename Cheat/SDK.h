@@ -235,7 +235,23 @@ struct APlayerState {
 	FString PlayerName;
 };
 
+struct FMinimalViewInfo {
+	FVector Location;
+	FRotator Rotation;
+	char UnknownData00[0x10];
+	float FOV;
+};
+
+struct FCameraCacheEntry {
+	float TimeStamp;
+	char pad[0xC];
+	FMinimalViewInfo POV;
+};
+
 struct APlayerCameraManager {
+	char pad[0x04D0];
+	FCameraCacheEntry CameraCache;
+
 	FVector GetCameraLocation() {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerCameraManager.GetCameraLocation");
 		FVector location;

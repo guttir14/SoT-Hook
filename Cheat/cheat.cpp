@@ -7,6 +7,31 @@
 
 namespace fs = std::filesystem;
 
+void Cheat::Hacks::OnWeaponFiredHook(UINT64 arg1, UINT64 arg2)
+{
+    Logger::Log("arg1: %p, arg2: %p\n", arg1, arg2);
+    auto& cameraCache = cache.localCamera->CameraCache.POV;
+    auto prev = cameraCache.Rotation;
+    cameraCache.Rotation = { -cameraCache.Rotation.Pitch, -cameraCache.Rotation.Yaw, 0.f };
+    return OnWeaponFiredOriginal(arg1, arg2);
+}
+
+void Cheat::Hacks::Init()
+{
+    /*UFunction* fn = UObject::FindObject<UFunction>("Function Athena.ProjectileWeapon.OnWeaponFired");
+    if (fn) {
+        if (SetHook(fn->Func, OnWeaponFiredHook, reinterpret_cast<void**>(&OnWeaponFiredOriginal)))
+        {
+            Logger::Log("StartFire: %p\n", fn->Func);
+        }
+    }*/
+}
+
+inline void Cheat::Hacks::Remove()
+{
+    //RemoveHook(OnWeaponFiredOriginal);
+}
+
 void Cheat::Renderer::Drawing::RenderText(const char* text, const FVector2D& pos, const ImVec4& color, const bool outlined = true, const bool centered = true)
 {
     if (!text) return;
@@ -188,127 +213,6 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    static struct Config {
-        enum class EBox : int {
-            ENone,
-            E2DBoxes,
-            E3DBoxes,
-            EDebugBoxes
-        };
-        enum class EBar : int {
-            ENone,
-            ELeft,
-            ERight,
-            EBottom,
-            ETop,
-            ETriangle
-        };
-        enum class EAim {
-            ENone, 
-            EClosest,
-            EFOV, 
-        };
-        struct {
-            bool bEnable = false;
-            struct {
-                bool bEnable = false;
-                bool bSkeleton = false;
-                bool bDrawTeam = false;
-                bool bHealth = false;
-                bool bName = false;
-                EBox boxType = EBox::ENone;
-                EBar barType = EBar::ENone;
-                ImVec4 enemyColorVis = { 1.f, 0.f, 0.f, 1.f };
-                ImVec4 enemyColorInv = { 1.f, 1.f, 0.f, 1.f };
-                ImVec4 teamColorVis = { 0.f, 1.f, 0.0f, 1.f };
-                ImVec4 teamColorInv = { 0.f, 1.f, 1.f, 1.f };
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-            } players;
-            struct {
-                bool bEnable = false;
-                bool bSkeleton = false;
-                bool bName = false;
-                EBox boxType = EBox::ENone;
-                EBar barType = EBar::ENone;
-                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
-                ImVec4 colorInv = { 1.f, 0.f, 1.f, 1.f };
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-                
-            } skeletons;
-            struct {
-                bool bEnable = false;
-                bool bSkeleton = false;
-                bool bHealth = false;
-                bool bName = false;
-                bool bDamage = false;
-                ImVec4 damageColor = { 1.f, 1.f, 1.f, 1.f };
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-            } ships;
-            struct {
-                bool bEnable = false;
-                bool bName = false;
-                int intMaxDist = 3500;
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-            } islands;
-            struct {
-                bool bEnable = false;
-                bool bName = false;
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f  };
-            } items;
-            struct {
-                bool bEnable = false;
-                bool bName = false;
-                EBox boxType = EBox::ENone;
-                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
-                ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-            } animals;
-            struct {
-                bool bEnable = false;
-                bool bSkeleton = false;
-                bool bName = false;
-                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
-                ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
-                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
-            } sharks;
-            struct {
-                bool bCrosshair = false;
-                bool bOxygen = false;
-                bool bCompass = false;
-                bool bDebug = false;
-                float fCrosshair = 7.f;
-                float fDebug = 10.f;
-                ImVec4 crosshairColor = { 1.f, 1.f, 1.f, 1.f };
-            } client;
-        } visuals;
-        struct {
-            bool bEnable = false;
-            struct {
-                bool bEnable = false;
-                bool bVisibleOnly = false;
-                bool bTeam = false;
-                float fYaw = 20.f;
-                float fPitch = 20.f;
-                float fSmoothness = 5.f;
-            } players;
-            struct {
-                bool bEnable = false;
-                bool bVisibleOnly = false;
-                float fYaw = 20.f;
-                float fPitch = 20.f;
-                float fSmoothness = 5.f;
-            } skeletons;
-        } aim;
-
-        struct {
-            bool bEnable = false;
-            struct {
-                
-            } client;
-        } misc;
-
-    } cfg;
-
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
@@ -324,6 +228,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     {
         do 
         {
+            memset(&cache, 0, sizeof(Cache));
             auto const world = *UWorld::GWorld;
             if (!world) break;
             auto const game = world->GameInstance;
@@ -337,6 +242,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             if (!localController) break;
             auto const camera = localController->PlayerCameraManager;
             if (!camera) break;
+            cache.localCamera = camera;
             const auto cameraLoc = camera->GetCameraLocation();
             const auto cameraRot = camera->GetCameraRotation();
             auto const localCharacter = localController->Character;
@@ -1049,6 +955,12 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
              
             if (aimBest.target != nullptr)
             {
+                FVector2D screen;
+                if (localController->ProjectWorldLocationToScreen(aimBest.location, screen)) 
+                {
+                    drawList->AddLine({ io.DisplaySize.x * 0.5f , io.DisplaySize.y * 0.5f }, { screen.X, screen.Y }, ImGui::GetColorU32(IM_COL32(0, 200, 0, 150)));
+                }
+
                 if (ImGui::IsMouseDown(1))
                 {
                     // todo: do prediction to moving targets
@@ -1079,7 +991,12 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             
             if (cfg.misc.bEnable)
             {
-                
+                if (cfg.misc.client.bEnable) {
+                    if (cfg.misc.client.bInfiniteAmmo)
+                    {
+
+                    }
+                }
             }
 
             localLoc_prev = localLoc;
@@ -1099,6 +1016,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
    
+    // todo: change this >
     static bool bIsOpen = false;
     if (ImGui::IsKeyPressed(VK_INSERT)) {
         if (bIsOpen) {
@@ -1644,11 +1562,14 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
         MessageBoxA(nullptr, "Couldn't find important objects", "Error", 0);
         return false;
     };
+    
     if (!Renderer::Init())
     {
         MessageBoxA(nullptr, "Couldn't init renderer", "Error", 0);
         return false;
     }
+
+    Hacks::Init();
 
     auto t = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ClearingThread), nullptr, 0, nullptr);
     if (t) CloseHandle(t);
@@ -1662,12 +1583,13 @@ void Cheat::ClearingThread()
         if (GetAsyncKeyState(VK_END) & 1) {
             FreeLibraryAndExitThread(hinstDLL, 0);
         }
-        Sleep(25);
+        Sleep(20);
     }
 }
 
 void Cheat::Tests()
 {
+    /*
     auto world = *UWorld::GWorld;
     if (!world) return;
     auto game = world->GameInstance;
@@ -1677,13 +1599,9 @@ void Cheat::Tests()
     auto localPlayer = localPlayers[0];
     auto localController = localPlayer->PlayerController;
     if (!localController) return;
-    auto localCharacter = localController->Character;
-    Logger::Log("localCharacter: %p\n", localCharacter);
-    if (!localCharacter) return;
-    auto localMesh = localCharacter->Mesh;
-    if (!localMesh) return;
-    auto comp2world = localMesh->K2_GetComponentToWorld();
-    Logger::Log("%f %f %f", comp2world.Scale3D.X, comp2world.Scale3D.Y, comp2world.Scale3D.Z);
+    Logger::Log("camera: %p\n", localController->PlayerCameraManager);
+    Logger::Log("localCharacter: %p\n", localController->Character);
+    */
 }
 
 
@@ -1696,8 +1614,11 @@ bool Cheat::Remove()
 
     Logger::Remove();
 
+    Hacks::Remove();
+
     // some other stuff...
 
 
     return true;
 }
+

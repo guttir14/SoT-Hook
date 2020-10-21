@@ -110,11 +110,12 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	WNDCLASSEXA wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandleA(NULL), NULL, NULL, NULL, NULL, "ImGui Example", NULL };
 	RegisterClassExA(&wc);
 	window = CreateWindowExA(0L, wc.lpszClassName, "", WS_POPUP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, NULL, wc.hInstance, NULL);
+	
 	if (!window) 
 	{
 		UnregisterClassA(wc.lpszClassName, wc.hInstance);
@@ -189,6 +190,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ImVec4 enemyColorInv = { 1.f, 1.f, 0.f, 1.f };
 					ImVec4 teamColorVis = { 0.f, 1.f, 0.0f, 1.f };
 					ImVec4 teamColorInv = { 0.f, 1.f, 1.f, 1.f };
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} players;
 				struct {
 					bool bEnable = false;
@@ -198,6 +200,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					EBar barType = EBar::ENone;
 					ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
 					ImVec4 colorInv = { 1.f, 0.f, 1.f, 1.f };
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 
 				} skeletons;
 				struct {
@@ -207,16 +210,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					bool bName = false;
 					bool bDamage = false;
 					ImVec4 damageColor = { 1.f, 1.f, 1.f, 1.f };
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} ships;
 				struct {
 					bool bEnable = false;
 					bool bName = false;
-					float fMaxDist = 3500.f;
+					int intMaxDist = 3500;
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} islands;
 				struct {
 					bool bEnable = false;
 					bool bName = false;
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} items;
+				struct {
+					bool bEnable = false;
+					bool bName = false;
+					EBox boxType = EBox::ENone;
+					ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
+					ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+				} animals;
+				struct {
+					bool bEnable = false;
+					bool bSkeleton = false;
+					bool bName = false;
+					ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
+					ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+				} sharks;
 				struct {
 					bool bCrosshair = false;
 					bool bOxygen = false;
@@ -249,10 +271,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			struct {
 				bool bEnable = false;
 				struct {
-
+					bool bEnable = false;
+					bool bInfiniteAmmo = false;
 				} client;
 			} misc;
-
 		} cfg;
 
 
@@ -282,7 +304,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 					ImGui::Columns(2, "CLM1", false);
 					const char* boxes[] = { "None", "2DBox", "3DBox", "DebugBox" };
-					const char* bars[] = { "None", "2DRectLeft", "2DRectRight", "2DRectBottom", "2DRectTop", "2DTriangTop" };
+					const char* bars[] = { "None", "2DRectLeft", "2DRectRight", "2DRectBottom", "2DRectTop" };
 					ImGui::Text("Players");
 					if (ImGui::BeginChild("PlayersSettings", ImVec2(0.f, 365.f), true, 0))
 					{
@@ -296,6 +318,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						ImGui::ColorEdit4("Invisible Enemy color", &cfg.visuals.players.enemyColorInv.x, 0);
 						ImGui::ColorEdit4("Visible Team color", &cfg.visuals.players.teamColorVis.x, 0);
 						ImGui::ColorEdit4("Invisible Team color", &cfg.visuals.players.teamColorInv.x, 0);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.players.textCol.x, 0);
 					}
 					ImGui::EndChild();
 
@@ -305,10 +328,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					if (ImGui::BeginChild("SkeletonsSettings", ImVec2(0.f, 365.f), true, 0))
 					{
 						ImGui::Checkbox("Enable", &cfg.visuals.skeletons.bEnable);
+						ImGui::Checkbox("Draw name", &cfg.visuals.skeletons.bName);
+						ImGui::Checkbox("Draw skeleton", &cfg.visuals.skeletons.bSkeleton);
 						ImGui::Combo("Box type", reinterpret_cast<int*>(&cfg.visuals.skeletons.boxType), boxes, IM_ARRAYSIZE(boxes));
 						ImGui::ColorEdit4("Visible Color", &cfg.visuals.skeletons.colorVis.x, 0);
 						ImGui::ColorEdit4("Invisible Color", &cfg.visuals.skeletons.colorInv.x, 0);
-						ImGui::Checkbox("Draw skeleton", &cfg.visuals.skeletons.bSkeleton);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.skeletons.textCol.x, 0);
 
 					}
 					ImGui::EndChild();
@@ -326,6 +351,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						ImGui::Checkbox("Enable", &cfg.visuals.ships.bEnable);
 						ImGui::Checkbox("Draw name", &cfg.visuals.ships.bName);
 						ImGui::Checkbox("Show holes", &cfg.visuals.ships.bDamage);
+						ImGui::ColorEdit4("Damage color", &cfg.visuals.ships.damageColor.x, 0);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.ships.textCol.x, 0);
 
 					}
 					ImGui::EndChild();
@@ -336,7 +363,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					if (ImGui::BeginChild("IslandsSettings", ImVec2(0.f, 220.f), true, 0)) {
 						ImGui::Checkbox("Enable", &cfg.visuals.islands.bEnable);
 						ImGui::Checkbox("Draw names", &cfg.visuals.islands.bName);
-						ImGui::SliderFloat("Max distance", &cfg.visuals.islands.fMaxDist, 100.f, 10000.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
+						ImGui::SliderInt("Max distance", &cfg.visuals.islands.intMaxDist, 100, 10000, "%d", ImGuiSliderFlags_AlwaysClamp);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.islands.textCol.x, 0);
 					}
 					ImGui::EndChild();
 					ImGui::Columns();
@@ -349,10 +377,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					{
 						ImGui::Checkbox("Enable", &cfg.visuals.items.bEnable);
 						ImGui::Checkbox("Draw name", &cfg.visuals.items.bName);
-
+						ImGui::ColorEdit4("Text color", &cfg.visuals.items.textCol.x, 0);
 					}
 					ImGui::EndChild();
+
 					ImGui::NextColumn();
+
+					ImGui::Text("Animals");
+					if (ImGui::BeginChild("AnimalsSettings", ImVec2(0.f, 220.f), true, 0))
+					{
+						ImGui::Checkbox("Enable", &cfg.visuals.animals.bEnable);
+						ImGui::Checkbox("Draw name", &cfg.visuals.animals.bName);
+						ImGui::Combo("Box type", reinterpret_cast<int*>(&cfg.visuals.animals.boxType), boxes, IM_ARRAYSIZE(boxes));
+						ImGui::ColorEdit4("Visible Color", &cfg.visuals.animals.colorVis.x, 0);
+						ImGui::ColorEdit4("Invisible Color", &cfg.visuals.animals.colorInv.x, 0);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.animals.textCol.x, 0);
+					}
+
+					ImGui::EndChild();
+					ImGui::Columns();
+
+					ImGui::Columns(2, "CLM4", false);
+					ImGui::Text("Sharks");
+					if (ImGui::BeginChild("SharksSettings", ImVec2(0.f, 220.f), true, 0))
+					{
+						ImGui::Checkbox("Enable", &cfg.visuals.sharks.bEnable);
+						ImGui::Checkbox("Draw skeleton", &cfg.visuals.sharks.bSkeleton);
+						ImGui::Checkbox("Draw name", &cfg.visuals.sharks.bName);
+						//ImGui::Combo("Box type", reinterpret_cast<int*>(&cfg.visuals.sharks.boxType), boxes, IM_ARRAYSIZE(boxes));
+						ImGui::ColorEdit4("Visible Color", &cfg.visuals.sharks.colorVis.x, 0);
+						ImGui::ColorEdit4("Invisible Color", &cfg.visuals.sharks.colorInv.x, 0);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.sharks.textCol.x, 0);
+					}
+					ImGui::EndChild();
+
+					ImGui::NextColumn();
+
 					ImGui::Text("Client");
 					if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 220.f), true, 0))
 					{
@@ -365,7 +425,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 							ImGui::SliderFloat("Radius##1", &cfg.visuals.client.fCrosshair, 1.f, 100.f);
 						}
 
-						ImGui::ColorEdit4("Crosshair color", &cfg.visuals.client.crosshairColor.x, ImGuiColorEditFlags_DisplayRGB);
+
 
 						ImGui::Checkbox("Oxygen level", &cfg.visuals.client.bOxygen);
 						ImGui::Checkbox("Compass", &cfg.visuals.client.bCompass);
@@ -377,6 +437,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 							ImGui::SetNextItemWidth(150.f);
 							ImGui::SliderFloat("Radius##2", &cfg.visuals.client.fDebug, 1.f, 1000.f);
 						}
+						ImGui::ColorEdit4("Crosshair color", &cfg.visuals.client.crosshairColor.x, ImGuiColorEditFlags_DisplayRGB);
 
 					}
 					ImGui::EndChild();
@@ -443,7 +504,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 365.f), true, 0))
 					{
 						if (ImGui::Button("Tests")) {
-							
+							//auto h = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Tests), nullptr, 0, nullptr);
+							//if (h) CloseHandle(h);
 						}
 					}
 					ImGui::EndChild();
@@ -494,8 +556,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		device = nullptr;
 	}
 
-	DestroyWindow(window);
-	UnregisterClassA(wc.lpszClassName, wc.hInstance);
+	if (DestroyWindow(window))
+	{
+		UnregisterClassA(wc.lpszClassName, wc.hInstance);
+	};
+	
 
 
 	return 0;

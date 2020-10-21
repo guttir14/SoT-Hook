@@ -8,14 +8,144 @@
 
 class Cheat {
 private:
-	class Renderer {
+    static inline struct Cache{
+        APlayerCameraManager* localCamera;
+    } cache;
+    static inline struct Config {
+        enum class EBox : int {
+            ENone,
+            E2DBoxes,
+            E3DBoxes,
+            EDebugBoxes
+        };
+        enum class EBar : int {
+            ENone,
+            ELeft,
+            ERight,
+            EBottom,
+            ETop,
+            ETriangle
+        };
+        enum class EAim {
+            ENone,
+            EClosest,
+            EFOV,
+        };
+        struct {
+            bool bEnable = false;
+            struct {
+                bool bEnable = false;
+                bool bSkeleton = false;
+                bool bDrawTeam = false;
+                bool bHealth = false;
+                bool bName = false;
+                EBox boxType = EBox::ENone;
+                EBar barType = EBar::ENone;
+                ImVec4 enemyColorVis = { 1.f, 0.f, 0.f, 1.f };
+                ImVec4 enemyColorInv = { 1.f, 1.f, 0.f, 1.f };
+                ImVec4 teamColorVis = { 0.f, 1.f, 0.0f, 1.f };
+                ImVec4 teamColorInv = { 0.f, 1.f, 1.f, 1.f };
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } players;
+            struct {
+                bool bEnable = false;
+                bool bSkeleton = false;
+                bool bName = false;
+                EBox boxType = EBox::ENone;
+                EBar barType = EBar::ENone;
+                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
+                ImVec4 colorInv = { 1.f, 0.f, 1.f, 1.f };
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+
+            } skeletons;
+            struct {
+                bool bEnable = false;
+                bool bSkeleton = false;
+                bool bHealth = false;
+                bool bName = false;
+                bool bDamage = false;
+                ImVec4 damageColor = { 1.f, 1.f, 1.f, 1.f };
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } ships;
+            struct {
+                bool bEnable = false;
+                bool bName = false;
+                int intMaxDist = 3500;
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } islands;
+            struct {
+                bool bEnable = false;
+                bool bName = false;
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } items;
+            struct {
+                bool bEnable = false;
+                bool bName = false;
+                EBox boxType = EBox::ENone;
+                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
+                ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } animals;
+            struct {
+                bool bEnable = false;
+                bool bSkeleton = false;
+                bool bName = false;
+                ImVec4 colorVis = { 0.f, 1.f, 0.5f, 1.f };
+                ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } sharks;
+            struct {
+                bool bCrosshair = false;
+                bool bOxygen = false;
+                bool bCompass = false;
+                bool bDebug = false;
+                float fCrosshair = 7.f;
+                float fDebug = 10.f;
+                ImVec4 crosshairColor = { 1.f, 1.f, 1.f, 1.f };
+            } client;
+        } visuals;
+        struct {
+            bool bEnable = false;
+            struct {
+                bool bEnable = false;
+                bool bVisibleOnly = false;
+                bool bTeam = false;
+                float fYaw = 20.f;
+                float fPitch = 20.f;
+                float fSmoothness = 5.f;
+            } players;
+            struct {
+                bool bEnable = false;
+                bool bVisibleOnly = false;
+                float fYaw = 20.f;
+                float fPitch = 20.f;
+                float fSmoothness = 5.f;
+            } skeletons;
+        } aim;
+
+        struct {
+            bool bEnable = false;
+            struct {
+                bool bEnable = false;
+                bool bInfiniteAmmo = false;
+            } client;
+        } misc;
+    } cfg;
+    class Hacks {
+    private:
+        static void OnWeaponFiredHook(UINT64 arg1, UINT64 arg2);
+        static inline decltype(OnWeaponFiredHook)* OnWeaponFiredOriginal = nullptr;
+    public:
+        static inline void Init();
+        static inline void Remove();
+    };
+    class Renderer {
 	private:
 		struct Drawing {
 			static void RenderText(const char* text, const FVector2D& pos, const ImVec4& color, const bool outlined, const bool centered);
 			static void Render2DBox(const FVector2D& top, const FVector2D& bottom, const float height, const float width, const ImVec4& color);
 			static bool Render3DBox(AController* constcontroller, const FVector& origin, const FVector& extent, const FRotator& rotation, const ImVec4& color);
 			static bool RenderSkeleton(AController* const controller, USkeletalMeshComponent* const mesh, const FMatrix& comp2world, const std::pair<const BYTE*, const BYTE>* skeleton, int size, const ImVec4& color);
-			static bool RenderColorBar(FVector& origin, float size,  ImU32*& colors, int n);
 		};
 	private:
 		static inline void** vtable;
@@ -33,8 +163,6 @@ private:
 	private:
 		static LRESULT WINAPI WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static BOOL WINAPI SetCursorPosHook(int X, int Y);
-		static BOOL WINAPI ShowCursorHook(BOOL bShow);
-		//static HCURSOR WINAPI SetCursorHook(HCURSOR hCursor);
 		static void HookInput();
 		static void RemoveInput();
 		static HRESULT PresentHook(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags);
