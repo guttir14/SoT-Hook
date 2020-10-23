@@ -129,23 +129,48 @@ bool Cheat::Renderer::Drawing::RenderSkeleton(AController* const controller, USk
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    // to get some input like open menu, etc. maybe it adds some delay to actual game input
-    if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam) && !bGameInput) return true;
-    if (bGameInput) return CallWindowProcA(WndProcOriginal, hwnd, uMsg, wParam, lParam);
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam) && bIsOpen) return true;
+    if (bIsOpen)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+        if (imgui_cursor == ImGuiMouseCursor_None)
+        {
+            SetCursorOriginal(NULL);
+        }
+        else
+        {
+            LPTSTR win32_cursor = IDC_ARROW;
+            switch (imgui_cursor)
+            {
+            case ImGuiMouseCursor_Arrow:        win32_cursor = IDC_ARROW; break;
+            case ImGuiMouseCursor_TextInput:    win32_cursor = IDC_IBEAM; break;
+            case ImGuiMouseCursor_ResizeAll:    win32_cursor = IDC_SIZEALL; break;
+            case ImGuiMouseCursor_ResizeEW:     win32_cursor = IDC_SIZEWE; break;
+            case ImGuiMouseCursor_ResizeNS:     win32_cursor = IDC_SIZENS; break;
+            case ImGuiMouseCursor_ResizeNESW:   win32_cursor = IDC_SIZENESW; break;
+            case ImGuiMouseCursor_ResizeNWSE:   win32_cursor = IDC_SIZENWSE; break;
+            case ImGuiMouseCursor_Hand:         win32_cursor = IDC_HAND; break;
+            case ImGuiMouseCursor_NotAllowed:   win32_cursor = IDC_NO; break;
+            }
+            SetCursorOriginal(LoadCursorA(nullptr, win32_cursor));
+        }
+    }
+    if (!bIsOpen || uMsg == WM_KEYUP) return CallWindowProcA(WndProcOriginal, hwnd, uMsg, wParam, lParam);
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
+}
+
+HCURSOR WINAPI Cheat::Renderer::SetCursorHook(HCURSOR hCursor)
+{
+   if (bIsOpen) return 0;
+   return SetCursorOriginal(hCursor);
 }
 
 BOOL WINAPI Cheat::Renderer::SetCursorPosHook(int X, int Y)
 {
-    if (bGameInput) return SetCursorPosOriginal(X, Y);
-    return FALSE;
+    if (bIsOpen) return FALSE;
+    return SetCursorPosOriginal(X, Y);
 }
-
-//HCURSOR __stdcall Cheat::Renderer::SetCursorHook(HCURSOR hCursor)
-//{
-//    if (bGameInput) return SetCursorOriginal(hCursor);
-//    return 0;
-//}
 
 void Cheat::Renderer::HookInput()
 {
@@ -1016,20 +1041,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
    
-    // todo: change this >
-    static bool bIsOpen = false;
-    if (ImGui::IsKeyPressed(VK_INSERT)) {
-        if (bIsOpen) {
-            io.MouseDrawCursor = false;
-            bGameInput = true;
-            bIsOpen = false;
-        }
-        else {
-            io.MouseDrawCursor = true;
-            bGameInput = false;
-            bIsOpen = true;
-        }
-    }
+    if (ImGui::IsKeyPressed(VK_INSERT)) bIsOpen = !bIsOpen;
 
     if (bIsOpen) {
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.7f), ImGuiCond_Once);
@@ -1336,13 +1348,23 @@ inline bool Cheat::Renderer::Init()
         return false;
     };
 
+    /*if (!SetHook(ShowCursor, ShowCursorHook, reinterpret_cast<void**>(&ShowCursorOriginal)))
+    {
+        return false;
+    };*/
+
+    if (!SetHook(SetCursor, SetCursorHook, reinterpret_cast<void**>(&SetCursorOriginal)))
+    {
+        return false;
+    };
+
     return true;
 }
 
 inline bool Cheat::Renderer::Remove()
 {
     Renderer::RemoveInput(); 
-    if (!RemoveHook(PresentOriginal) || !RemoveHook(ResizeOriginal) || !RemoveHook(SetCursorPosOriginal))
+    if (!RemoveHook(PresentOriginal) || !RemoveHook(ResizeOriginal) || !RemoveHook(SetCursorPosOriginal) || !RemoveHook(SetCursorOriginal))
     {
         return false;
     }
