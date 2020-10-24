@@ -5,6 +5,8 @@
 #include <imgui/imgui_impl_win32.h>
 #include <HookLib/HookLib.h>
 
+//#define XBOX
+
 namespace fs = std::filesystem;
 
 void Cheat::Hacks::OnWeaponFiredHook(UINT64 arg1, UINT64 arg2)
@@ -132,7 +134,6 @@ LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
     if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam) && bIsOpen) return true;
     if (bIsOpen)
     {
-        ImGuiIO& io = ImGui::GetIO();
         ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
         if (imgui_cursor == ImGuiMouseCursor_None)
         {
@@ -176,6 +177,7 @@ void Cheat::Renderer::HookInput()
 {
     RemoveInput();
     WndProcOriginal = reinterpret_cast<WNDPROC>(SetWindowLongPtrA(gameWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc)));
+    Logger::Log("WndProcOriginal = %p\n", WndProcOriginal);
 }
 
 void Cheat::Renderer::RemoveInput()
@@ -191,48 +193,79 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 { 
     if (!device)
     {
+        Logger::Log("PresentHook has been called!\n");
         ID3D11Texture2D* surface = nullptr;
         if (FAILED(swapChain->GetBuffer(0, __uuidof(surface), reinterpret_cast<PVOID*>(&surface)))) 
         {
             return PresentOriginal(swapChain, syncInterval, flags);
         };
 
+        Logger::Log("ID3D11Texture2D* surface = %p\n", surface);
+
         if (FAILED(swapChain->GetDevice(__uuidof(device), reinterpret_cast<PVOID*>(&device))))
         {
             return PresentOriginal(swapChain, syncInterval, flags);
         }
 
-        if (FAILED(device->CreateRenderTargetView(surface, nullptr, &renderTargetView))) 
+        Logger::Log("ID3D11Device* device = %p\n", device);
+
+        goto init;
+    cleanup:
+        if (context)
         {
-            surface->Release();
+            context->Release();
+            context = nullptr;
+        } 
+        else if (surface) surface->Release();
+        if (renderTargetView)
+        {
+            renderTargetView->Release();
+            renderTargetView = nullptr;
+        }
+        if (device)
+        {
             device->Release();
             device = nullptr;
-            return PresentOriginal(swapChain, syncInterval, flags);
+        }
+        return PresentOriginal(swapChain, syncInterval, flags);
+    init:
+        if (FAILED(device->CreateRenderTargetView(surface, nullptr, &renderTargetView))) 
+        {
+            goto cleanup;
         };
 
+        Logger::Log("ID3D11RenderTargetView* renderTargetView = %p\n", renderTargetView);
+
         surface->Release();
+        surface = nullptr;
 
         device->GetImmediateContext(&context);
 
+        Logger::Log("ID3D11DeviceContext* context = %p\n", context);
+
         ImGui::CreateContext();
 
-        ImGuiIO& io = ImGui::GetIO();
-
+        {
+            ImGuiIO& io = ImGui::GetIO();
+            ImFontConfig config;
+            config.GlyphRanges = io.Fonts->GetGlyphRangesCyrillic();
+            config.RasterizerMultiply = 1.125f;
+            io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &config);
+            io.IniFilename = nullptr;
+        }
         
-        ImFontConfig config;
-        config.GlyphRanges = io.Fonts->GetGlyphRangesCyrillic();
-        config.RasterizerMultiply = 1.125f;
-        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &config);
-        io.IniFilename = nullptr;
 
-        ImGui_ImplWin32_Init(gameWindow);
-        ImGui_ImplDX11_Init(device, context);
-        ImGui_ImplDX11_CreateDeviceObjects();
-
+        DXGI_SWAP_CHAIN_DESC desc;
+        swapChain->GetDesc(&desc);
+        gameWindow = desc.OutputWindow;
+        Logger::Log("gameWindow = %p\n", desc.OutputWindow);
+    
+        if (!ImGui_ImplWin32_Init(desc.OutputWindow)) goto cleanup;
+        if (!ImGui_ImplDX11_Init(device, context)) goto cleanup;
+        if (!ImGui_ImplDX11_CreateDeviceObjects()) goto cleanup;
+        Logger::Log("ImGui initialized successfully!\n");
         HookInput();
     }
-
-
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -1405,8 +1438,6 @@ HRESULT Cheat::Renderer::ResizeHook(IDXGISwapChain* swapChain, UINT bufferCount,
 
 inline bool Cheat::Renderer::Init()
 {
-    gameWindow = FindWindowA("UnrealWindow", "Sea of Thieves");
-    Logger::Log("Window: %p\n", gameWindow);
     HMODULE dxgi = GetModuleHandleA("dxgi.dll");
     Logger::Log("dxgi: %p\n", dxgi);
     static BYTE PresentSig[] = { 0x55, 0x57, 0x41, 0x56, 0x48, 0x8d, 0x6c, 0x24, 0x90, 0x48, 0x81, 0xec, 0x70, 0x01 };
@@ -1500,7 +1531,6 @@ inline BYTE* Cheat::Tools::FindSignature(BYTE* start, BYTE* end, BYTE* sig, SIZE
     return 0;
 }
 
-
 void* Cheat::Tools::FindPointer(BYTE* sig, SIZE_T size, int addition = 0)
 {
     auto base = static_cast<BYTE*>(gBaseMod.lpBaseOfDll);
@@ -1582,11 +1612,18 @@ inline bool Cheat::Tools::InitSDK()
 
 inline bool Cheat::Logger::Init()
 {
+    fs::path log;
+#ifndef XBOX
     wchar_t buf[MAX_PATH];
     if (!GetModuleFileNameW(hinstDLL, buf, MAX_PATH)) return false;
-    fs::path log = fs::path(buf).remove_filename() / "log.txt";
+    log = fs::path(buf).remove_filename() / "log.txt";
+#else
+    log = "C:\\Users\\dimae\\AppData\\Local\\Packages\\Microsoft.SeaofThieves_8wekyb3d8bbwe\\TempState\\log.txt";
+#endif
     file = CreateFileW(log.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     return file != INVALID_HANDLE_VALUE;
+
+
 }
 
 inline bool Cheat::Logger::Remove()
@@ -1612,7 +1649,6 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
     hinstDLL = _hinstDLL;
     if (!Logger::Init())
     {
-        MessageBoxA(nullptr, "Couldn't init Logger", "Error", 0);
         return false;
     };
     if (!K32GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &gBaseMod, sizeof(MODULEINFO))) 
@@ -1622,31 +1658,31 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
     Logger::Log("SoTGame.exe base: %p\n", gBaseMod.lpBaseOfDll);
     if (!Tools::FindNameArray()) 
     {
-        MessageBoxA(nullptr, "Couldn't find NameArray", "Error", 0);
+        Logger::Log("Couldn't find NameArray!\n");
         return false;
     }
     Logger::Log("NameArray: %p\n", FName::GNames);
     if (!Tools::FindObjectsArray()) 
     {
-        MessageBoxA(nullptr, "Couldn't find ObjectsArray", "Error", 0);
+        Logger::Log("Couldn't find ObjectsArray!\n");
         return false;
     } 
     Logger::Log("ObjectsArray: %p\n", UObject::GObjects);
     if (!Tools::FindWorld())
     {
-        MessageBoxA(nullptr, "Couldn't find World", "Error", 0);
+        Logger::Log("Couldn't find World!\n");
         return false;
     }
     Logger::Log("World: %p\n", UWorld::GWorld);
     if (!Tools::InitSDK())
     {
-        MessageBoxA(nullptr, "Couldn't find important objects", "Error", 0);
+        Logger::Log("Couldn't find important objects!\n");
         return false;
     };
     
     if (!Renderer::Init())
     {
-        MessageBoxA(nullptr, "Couldn't init renderer", "Error", 0);
+        Logger::Log("Couldn't initialize renderer\n");
         return false;
     }
 
@@ -1685,21 +1721,21 @@ void Cheat::Tests()
     */
 }
 
-
 bool Cheat::Remove()
 {
-    if (!Renderer::Remove()) 
+
+    Logger::Log("Removing cheat...\n");
+    
+    if (!Renderer::Remove() || !Logger::Remove())
     {
         return false;
     };
-
-    Logger::Remove();
 
     Hacks::Remove();
 
     // some other stuff...
 
+    
 
     return true;
 }
-

@@ -7,6 +7,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 	case DLL_PROCESS_ATTACH: 
 	{
 		DisableThreadLibraryCalls(hinstDLL);
+
 		if (!Cheat::Init(hinstDLL))
 		{
 			return FALSE;
