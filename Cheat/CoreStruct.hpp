@@ -3,6 +3,7 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <emmintrin.h>
+#include <stdint.h>
 
 
 #ifdef _MSC_VER
@@ -32,15 +33,15 @@ public:
 	}
 
 	T* Data;
-	int Count;
-	int Max;
+	uint32_t Count;
+	uint32_t Max;
 };
 
 class FNameEntry
 {
 public:
-	int Index;
-	int pad;
+	uint32_t Index;
+	uint32_t pad;
 	FNameEntry* HashNext;
 	union
 	{
@@ -75,17 +76,17 @@ class TNameEntryArray
 {
 public:
 
-	inline bool IsValidIndex(int index) const
+	inline bool IsValidIndex(uint32_t index) const
 	{
-		return index < NumElements && index >= 0;
+		return index < NumElements;
 	}
 
-	FNameEntry const* const& GetById(int index) const
+	FNameEntry const* GetById(uint32_t index) const
 	{
 		return *GetItemPtr(index);
 	}
 
-	inline FNameEntry const* const* GetItemPtr(int Index) const
+	inline FNameEntry const* const* GetItemPtr(uint32_t Index) const
 	{
 		const auto ChunkIndex = Index / 16384;
 		const auto WithinChunkIndex = Index % 16384;
@@ -93,16 +94,9 @@ public:
 		return Chunk + WithinChunkIndex;
 	}
 
-	void Resolve() {
-		for (auto i = 0; Chunks[i]; i++) {
-			NumChunks++;
-		}
-		NumElements = NumChunks * 16384;
-	}
-
 	FNameEntry** Chunks[ChunkTableSize];
-	static inline int NumElements = 0;
-	static inline int NumChunks = 0;
+	uint32_t NumElements = 0;
+	uint32_t NumChunks = 0;
 };
 
 struct FVector

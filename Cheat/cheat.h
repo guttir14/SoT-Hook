@@ -9,6 +9,7 @@
 class Cheat {
 private:
     static inline struct Cache{
+        AController* localController;
         APlayerCameraManager* localCamera;
     } cache;
     static inline struct Config {
@@ -95,6 +96,13 @@ private:
                 ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
             } sharks;
             struct {
+                bool bEnable = false;
+                bool bName = false;
+                bool bDoor = false;
+                bool bKeyPlace = false;
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } puzzles;
+            struct {
                 bool bCrosshair = false;
                 bool bOxygen = false;
                 bool bCompass = false;
@@ -128,6 +136,8 @@ private:
             struct {
                 bool bEnable = false;
                 bool bInfiniteAmmo = false;
+                bool bIdleKick = false;
+                float fGameSpeed = 1.f;
             } client;
         } misc;
     } cfg;

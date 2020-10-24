@@ -288,6 +288,9 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
+		
+		
+
 		if (bIsOpen) {
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.7f), ImGuiCond_Once);
 			ImGui::Begin("Menu", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
@@ -492,6 +495,8 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 				if (ImGui::BeginTabItem("Misc")) {
 
+					
+
 					ImGui::Text("Global Misc");
 					if (ImGui::BeginChild("Global", ImVec2(0.f, 38.f), true, 0))
 					{
@@ -504,9 +509,25 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 365.f), true, 0))
 					{
 						if (ImGui::Button("Tests")) {
+							ImGui::OpenPopup("##SettingsLoaded");
+
+
 							//auto h = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Tests), nullptr, 0, nullptr);
 							//if (h) CloseHandle(h);
 						}
+
+						ImVec2 center(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
+						ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+						if (ImGui::BeginPopupModal("##SettingsLoaded", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+						{
+							ImGui::Text("\nSettings have been loaded\n\n");
+							ImGui::Separator();
+							if (ImGui::Button("OK", { 170.f , 0.f })) { ImGui::CloseCurrentPopup(); }
+							ImGui::EndPopup();
+						}
+
+						
 					}
 					ImGui::EndChild();
 
@@ -518,8 +539,13 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 				ImGui::EndTabBar();
 			};
+
+			
+
 			ImGui::End();
 		}
+
+		
 
 
 		ImGui::Render();

@@ -323,11 +323,11 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
         if (wParam < 256)
             io.KeysDown[wParam] = 0;
         return 0;
-    //case WM_CHAR:
-    //    // You can also use ToAscii()+GetKeyboardState() to retrieve characters.
-    //    if (wParam > 0 && wParam < 0x10000)
-    //        io.AddInputCharacterUTF16((unsigned short)wParam);
-    //    return 0;
+    case WM_CHAR:
+        // You can also use ToAscii()+GetKeyboardState() to retrieve characters.
+        if (wParam > 0 && wParam < 0x10000)
+            io.AddInputCharacterUTF16((unsigned short)wParam);
+        return 0;
     /*case WM_SETCURSOR:
        if (LOWORD(lParam) == HTCLIENT && ImGui_ImplWin32_UpdateMouseCursor())
             return 1;

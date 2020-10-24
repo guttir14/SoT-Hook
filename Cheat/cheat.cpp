@@ -264,6 +264,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             auto const localPlayer = game->LocalPlayers[0];
             if (!localPlayer) break;
             auto const localController = localPlayer->PlayerController;
+            cache.localController = localController;
             if (!localController) break;
             auto const camera = localController->PlayerCameraManager;
             if (!camera) break;
@@ -310,6 +311,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     auto const actor = actors[a];
                     if (!actor) continue;
 
+                    
                     if (cfg.aim.bEnable && isWieldedWeapon)
                     {
                         if (cfg.aim.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
@@ -327,7 +329,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                                 const float absYaw = abs(rotationDelta.Yaw);
                                 const float absPitch = abs(rotationDelta.Pitch);
-                                if (absYaw > cfg.aim.players.fYaw || absPitch > cfg.aim.players.fPitch) break;                                
+                                if (absYaw > cfg.aim.players.fYaw || absPitch > cfg.aim.players.fPitch) break;
                                 const float sum = absYaw + absPitch;
 
                                 if (sum < aimBest.best)
@@ -369,7 +371,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                             } while (false);
                         }
                     }
-                   
+                    
 
                     if (cfg.visuals.bEnable)
                     {
@@ -876,7 +878,24 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     continue;
                                 }
                             }
+                            if (cfg.visuals.puzzles.bEnable && actor->isPuzzleVault())
+                            {
+                                auto vault = reinterpret_cast<APuzzleVault*>(actor);
+                                if (cfg.visuals.puzzles.bDoor)
+                                {
+                                   
+                                    const FVector location = reinterpret_cast<ACharacter*>(vault->OuterDoor)->K2_GetActorLocation();
+                                    FVector2D screen;
+                                    if (localController->ProjectWorldLocationToScreen(location, screen)) {
 
+                                        char name[0x64];
+                                        const int dist = localLoc.DistTo(location) * 0.01f;
+                                        sprintf_s(name, "Vault door [%d]", dist);
+                                        Drawing::RenderText(name, screen, cfg.visuals.puzzles.textCol);
+                                    };
+                                }
+                                continue;
+                            }
 
                             /*if (cfg.bBuriedTreasure && actor->isBuriedTreasure()) {
                                 auto location = actor->K2_GetActorLocation();
@@ -891,6 +910,10 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                             }*/
                         }
                     }
+                
+                  
+                    
+                    
                 }
             }
             
@@ -1012,11 +1035,23 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                
             }
                 
-            
-            
+
+
+
+            if (!localController->IdleDisconnectEnabled && !(cfg.misc.bEnable && cfg.misc.client.bEnable && cfg.misc.client.bIdleKick))
+            {
+                localController->IdleDisconnectEnabled = true;
+            }
+
             if (cfg.misc.bEnable)
             {
-                if (cfg.misc.client.bEnable) {
+                if (cfg.misc.client.bEnable) 
+                {
+                    if (localController->IdleDisconnectEnabled && cfg.misc.client.bIdleKick)
+                    {
+                        localController->IdleDisconnectEnabled = false;
+                    }
+                    
                     if (cfg.misc.client.bInfiniteAmmo)
                     {
 
@@ -1168,6 +1203,20 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 ImGui::NextColumn();
 
+                ImGui::Text("Puzzles");
+                if (ImGui::BeginChild("PuzzlesSettings", ImVec2(0.f, 220.f), true, 0))
+                {
+
+                    ImGui::Checkbox("Enable", &cfg.visuals.puzzles.bEnable);
+                    ImGui::Checkbox("Draw doors", &cfg.visuals.puzzles.bDoor);
+                    ImGui::ColorEdit4("Text color", &cfg.visuals.puzzles.textCol.x, 0);
+
+                }
+                ImGui::EndChild();
+                ImGui::Columns();
+
+                ImGui::Columns(2, "CLM5", false);
+
                 ImGui::Text("Client");
                 if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 220.f), true, 0))
                 {
@@ -1180,7 +1229,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         ImGui::SliderFloat("Radius##1", &cfg.visuals.client.fCrosshair, 1.f, 100.f);
                     }
 
-                    
+
 
                     ImGui::Checkbox("Oxygen level", &cfg.visuals.client.bOxygen);
                     ImGui::Checkbox("Compass", &cfg.visuals.client.bCompass);
@@ -1195,6 +1244,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::ColorEdit4("Crosshair color", &cfg.visuals.client.crosshairColor.x, ImGuiColorEditFlags_DisplayRGB);
 
                 }
+
                 ImGui::EndChild();
                 ImGui::Columns();
 
@@ -1258,9 +1308,58 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 ImGui::Text("Client");
                 if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 365.f), true, 0))
                 {
+                    ImGui::Checkbox("Enable", &cfg.misc.client.bEnable);
+                    ImGui::Checkbox("Disable idle kick", &cfg.misc.client.bIdleKick);
+                    ImGui::Separator();
+                    if (ImGui::Button("Save settings"))
+                    {
+                        do {
+                            char buf[MAX_PATH];
+                            GetModuleFileNameA(hinstDLL, buf, MAX_PATH);
+                            fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
+                            auto file = CreateFileA(path.string().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                            if (file == INVALID_HANDLE_VALUE) break;
+                            DWORD written;
+                            if (WriteFile(file, &cfg, sizeof(cfg), &written, 0)) ImGui::OpenPopup("##SettingsSaved");
+                            CloseHandle(file);
+                        } while (false);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Load settings")) 
+                    {
+                        do {
+                            char buf[MAX_PATH];
+                            GetModuleFileNameA(hinstDLL, buf, MAX_PATH);
+                            fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
+                            auto file = CreateFileA(path.string().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                            if (file == INVALID_HANDLE_VALUE) break;
+                            DWORD readed;
+                            if (ReadFile(file, &cfg, sizeof(cfg), &readed, 0))  ImGui::OpenPopup("##SettingsLoaded");
+                            CloseHandle(file);
+                        } while (false);
+                    }
+                    ImGui::SameLine();
                     if (ImGui::Button("Tests")) {
                         auto h = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Tests), nullptr, 0, nullptr);
                         if (h) CloseHandle(h);
+                    }
+
+                    ImVec2 center(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
+                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+                    if (ImGui::BeginPopupModal("##SettingsSaved", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+                    {
+                        ImGui::Text("\nSettings have been saved\n\n");
+                        ImGui::Separator();
+                        if (ImGui::Button("OK", { 170.f , 0.f })) { ImGui::CloseCurrentPopup(); }
+                        ImGui::EndPopup();
+                    }
+                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+                    if (ImGui::BeginPopupModal("##SettingsLoaded", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+                    {
+                        ImGui::Text("\nSettings have been loaded\n\n");
+                        ImGui::Separator();
+                        if (ImGui::Button("OK", { 170.f , 0.f })) { ImGui::CloseCurrentPopup(); }
+                        ImGui::EndPopup();
                     }
                 }
                 ImGui::EndChild();
@@ -1347,11 +1446,6 @@ inline bool Cheat::Renderer::Init()
     {
         return false;
     };
-
-    /*if (!SetHook(ShowCursor, ShowCursorHook, reinterpret_cast<void**>(&ShowCursorOriginal)))
-    {
-        return false;
-    };*/
 
     if (!SetHook(SetCursor, SetCursorHook, reinterpret_cast<void**>(&SetCursorOriginal)))
     {
@@ -1461,39 +1555,10 @@ inline BYTE* Cheat::Tools::PacthFn(HMODULE mod, BYTE* sig, SIZE_T sigSize, BYTE*
     return Tools::PatchMem(fn, bytes, bytesSize) ? fn : 0;
 }
 
-/*
-void Cheat::Tools::ShowErrorMsg(const CHAR* lpszFunction)
-{
-    CHAR* lpMsgBuf;
-    CHAR* lpDisplayBuf;
-    DWORD dw = GetLastError();
-
-    FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        dw,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        reinterpret_cast<LPTSTR>(&lpMsgBuf),
-        0, NULL);
-
-
-    lpDisplayBuf = static_cast<CHAR*>(LocalAlloc(LMEM_ZEROINIT, strlen(lpMsgBuf) + strlen(lpszFunction) + 40));
-    if (!lpDisplayBuf) return;
-    sprintf(lpDisplayBuf, "%s failed with error %d: %s", lpszFunction, dw, lpMsgBuf);
-    MessageBoxA(nullptr, lpDisplayBuf, "Error", 0);
-
-    LocalFree(lpMsgBuf);
-    LocalFree(lpDisplayBuf);
-}
-*/
-
 inline bool Cheat::Tools::FindNameArray()
 {
     static BYTE sig[] = { 0x48, 0x8b, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x85, 0xff, 0x75, 0x3c };
-    FName::GNames = reinterpret_cast<decltype(FName::GNames)>(FindPointer(sig, sizeof(sig)));
-    if (FName::GNames) (*FName::GNames)->Resolve();
+    FName::GNames = *reinterpret_cast<decltype(FName::GNames)*>(FindPointer(sig, sizeof(sig)));
     return FName::GNames;
 }
 
@@ -1557,7 +1622,6 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
     };
     if (!K32GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &gBaseMod, sizeof(MODULEINFO))) 
     {
-        //Tools::ShowErrorMsg("GetModuleInformation");
         return false;
     };
     Logger::Log("SoTGame.exe base: %p\n", gBaseMod.lpBaseOfDll);

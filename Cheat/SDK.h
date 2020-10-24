@@ -12,22 +12,22 @@ struct FName
 	int ComparisonIndex;
 	int Number;
 
-	static inline TNameEntryArray** GNames = nullptr;
+	static inline TNameEntryArray* GNames = nullptr;
 
 	static std::string GetNameById(int Id) {
-		auto NameEntry = (*GNames)->GetById(Id);
+		auto NameEntry = GNames->GetById(Id);
 		if (!NameEntry) return std::string();
 		return NameEntry->GetAnsiName();
 	}
 
 	const char* GetNameFast() const {
-		auto NameEntry = (*GNames)->GetById(ComparisonIndex);
+		auto NameEntry = GNames->GetById(ComparisonIndex);
 		if (!NameEntry) return nullptr;
 		return NameEntry->GetAnsiName();
 	}
 
 	const std::string GetName() const {
-		auto NameEntry = (*GNames)->GetById(ComparisonIndex);
+		auto NameEntry = GNames->GetById(ComparisonIndex);
 		if (!NameEntry) return std::string();
 		return NameEntry->GetAnsiName();
 	};
@@ -212,6 +212,11 @@ public:
 			Data = const_cast<wchar_t*>(other);
 		}
 	};
+	FString(const wchar_t* other, int count)
+	{
+		Data = const_cast<wchar_t*>(other);;
+		Max = Count = count;
+	};
 
 	inline bool IsValid() const
 	{
@@ -280,9 +285,15 @@ struct AController {
 	char pad_04D0[0x10]; //0x04D0
 	void* MyHUD; //0x04E0
 	APlayerCameraManager* PlayerCameraManager; //0x04E8
-	char pad[0x138]; // 0x4F0
+	char pad_04F0[0x138]; // 0x4F0
 	FRotator RotationInput; // 0x618
+	char pad_0624[0xF05]; // 0x624
+	bool IdleDisconnectEnabled; // 0x1529(0x0001)
 
+	void SendToConsole(FString& cmd){
+		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerController.SendToConsole");
+		ProcessEvent(this, fn, &cmd);
+	}
 
 	bool ProjectWorldLocationToScreen(const FVector& WorldLocation, FVector2D& ScreenLocation) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerController.ProjectWorldLocationToScreen");
@@ -506,6 +517,52 @@ struct AIslandService {
 	UIslandDataAsset* IslandDataAsset; // 0x4d0
 };
 
+struct ASlidingDoor {
+	char pad_0x0[0x050C];
+	FVector InitialDoorMeshLocation; // 0x050C
+	void OpenDoor() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.SkeletonFortDoor.OpenDoor");
+		ProcessEvent(this, fn, nullptr);
+	}
+};
+
+struct USceneComponent {
+	FVector K2_GetComponentLocation() {
+		FVector location;
+		static auto fn = UObject::FindObject<UFunction>("Function Engine.SceneComponent.K2_GetComponentLocation");
+		ProcessEvent(this, fn, &location);
+		return location;
+	}
+};
+
+struct APuzzleVault {
+	
+	char pad_0x04E8[0x0580]; // 0x0
+	USceneComponent* PlinthItemSpawnMesh; // 0x0580
+	char pad_0x0588[0xAB0]; // 0x0588
+	FString* VaultName; // 0x1038
+	char pad_0x1040[0x30]; // 0x1040
+	ASlidingDoor* OuterDoor; // 0x1070
+	char pad_0x1078[0x188]; // 0x1078
+	ACharacter* ReservationTotem; // 0x1200
+
+
+	void OpenVaultDoor() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.PuzzleVault.OpenVaultDoor");
+		ProcessEvent(this, fn, nullptr);
+	}
+
+	void ActivateVault() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.PuzzleVault.ActivateVault");
+		ProcessEvent(this, fn, nullptr);
+	}
+};
+
+struct AWorldSettings {
+	char pad[0x05C0]; // 0x0
+	float TimeDilation; // 0x05C0
+};
+
 struct AAthenaGameState {
 	char pad[0x640];
 	UINT64* WindService;
@@ -625,6 +682,10 @@ public:
 		static auto obj = UObject::FindClass("Class Athena.AthenaPlayerCharacter");
 		return IsA(obj);
 	}
+	inline bool isPuzzleVault() {
+		static auto obj = UObject::FindClass("Class Athena.PuzzleVault");
+		return IsA(obj);
+	}
 	inline bool isShip() {
 		static auto obj = UObject::FindClass("Class Athena.Ship");
 		return IsA(obj);
@@ -657,6 +718,10 @@ public:
 
 	bool isBarrel() {
 		static auto obj = UObject::FindClass("Class Athena.StorageContainer");
+		return IsA(obj);
+	}
+	bool isWorldSettings() {
+		static auto obj = UObject::FindClass("Class Engine.WorldSettings");
 		return IsA(obj);
 	}
 	bool isBuriedTreasure() {
