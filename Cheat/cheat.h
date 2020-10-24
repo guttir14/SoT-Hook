@@ -2,7 +2,6 @@
 #include <windows.h>
 #include <Psapi.h>
 #include <d3d11.h>
-#include <mutex>
 #include <imgui/imgui.h>
 #include "SDK.h"
 
@@ -158,25 +157,20 @@ private:
 			static bool RenderSkeleton(AController* const controller, USkeletalMeshComponent* const mesh, const FMatrix& comp2world, const std::pair<const BYTE*, const BYTE>* skeleton, int size, const ImVec4& color);
 		};
 	private:
-		static inline void** vtable;
 		static inline HRESULT(*PresentOriginal)(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) = nullptr;
 		static inline HRESULT(*ResizeOriginal)(IDXGISwapChain* swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) = nullptr;
 		static inline decltype(SetCursorPos)* SetCursorPosOriginal = nullptr;
         static inline decltype(SetCursor)* SetCursorOriginal = nullptr;
-        //static inline decltype(ShowCursor)* ShowCursorOriginal = nullptr;
 		static inline ID3D11Device* device = nullptr;
 		static inline ID3D11DeviceContext* context = nullptr;
 		static inline ID3D11RenderTargetView* renderTargetView = nullptr;
-		//static inline bool bGameInput = true;
         static inline bool bIsOpen = false;
 		static inline WNDPROC WndProcOriginal = nullptr;
 		static inline HWND gameWindow;
-		static inline ImFont* Arial;
 	private:
 		static LRESULT WINAPI WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static BOOL WINAPI SetCursorPosHook(int X, int Y);
         static HCURSOR WINAPI SetCursorHook(HCURSOR hCursor);
-        //static int WINAPI ShowCursorHook(BOOL bShow);
 		static void HookInput();
 		static void RemoveInput();
 		static HRESULT PresentHook(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags);
@@ -194,8 +188,6 @@ private:
 		static inline BYTE* FindFn(HMODULE mod, BYTE* sig, SIZE_T sigSize);
 		static inline bool PatchMem(void* address, void* bytes, SIZE_T size);
 		static inline BYTE* PacthFn(HMODULE mod, BYTE* sig, SIZE_T sigSize, BYTE* bytes, SIZE_T bytesSize);
-		//static inline bool HookVT(void** vtable, UINT64 index, void* FuncH, void** FuncO);
-		//static inline void ShowErrorMsg(const CHAR* lpszFunction);
 		static inline bool FindNameArray();
 		static inline bool FindObjectsArray();
 		static inline bool FindWorld();
@@ -206,7 +198,6 @@ private:
 	class Logger {
 	private:
 		static inline HANDLE file = nullptr;
-		static inline std::mutex mutex;
 	public:
 		static inline bool Init();
 		static inline bool Remove();

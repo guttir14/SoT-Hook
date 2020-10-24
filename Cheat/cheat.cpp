@@ -1062,9 +1062,6 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             localLoc_prev = localLoc;
 
         } while (false);
-
-
-        
     }
     catch (...) 
     {
@@ -1314,10 +1311,10 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     if (ImGui::Button("Save settings"))
                     {
                         do {
-                            char buf[MAX_PATH];
-                            GetModuleFileNameA(hinstDLL, buf, MAX_PATH);
+                            wchar_t buf[MAX_PATH];
+                            GetModuleFileNameW(hinstDLL, buf, MAX_PATH);
                             fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
-                            auto file = CreateFileA(path.string().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                            auto file = CreateFileW(path.wstring().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
                             if (file == INVALID_HANDLE_VALUE) break;
                             DWORD written;
                             if (WriteFile(file, &cfg, sizeof(cfg), &written, 0)) ImGui::OpenPopup("##SettingsSaved");
@@ -1328,10 +1325,10 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     if (ImGui::Button("Load settings")) 
                     {
                         do {
-                            char buf[MAX_PATH];
-                            GetModuleFileNameA(hinstDLL, buf, MAX_PATH);
+                            wchar_t buf[MAX_PATH];
+                            GetModuleFileNameW(hinstDLL, buf, MAX_PATH);
                             fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
-                            auto file = CreateFileA(path.string().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                            auto file = CreateFileW(path.wstring().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
                             if (file == INVALID_HANDLE_VALUE) break;
                             DWORD readed;
                             if (ReadFile(file, &cfg, sizeof(cfg), &readed, 0))  ImGui::OpenPopup("##SettingsLoaded");
@@ -1585,10 +1582,10 @@ inline bool Cheat::Tools::InitSDK()
 
 inline bool Cheat::Logger::Init()
 {
-    char buf[MAX_PATH];
-    GetModuleFileNameA(hinstDLL, buf, MAX_PATH);
+    wchar_t buf[MAX_PATH];
+    if (!GetModuleFileNameW(hinstDLL, buf, MAX_PATH)) return false;
     fs::path log = fs::path(buf).remove_filename() / "log.txt";
-    file = CreateFileA(log.string().c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    file = CreateFileW(log.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     return file != INVALID_HANDLE_VALUE;
 }
 
@@ -1599,18 +1596,15 @@ inline bool Cheat::Logger::Remove()
 
 void Cheat::Logger::Log(const char* format, ...)
 {
-    mutex.lock();
-    time_t rawtime;
-    time(&rawtime);
-    auto timeinfo = localtime(&rawtime);
+    SYSTEMTIME rawtime;
+    GetSystemTime(&rawtime);
     char buf[MAX_PATH];
-    auto size = strftime(buf, MAX_PATH, "[%d-%m-%Y %H:%M:%S] ", timeinfo);
+    auto size = GetTimeFormatA(LOCALE_CUSTOM_DEFAULT, 0, &rawtime, "[HH':'mm':'ss] ", buf, MAX_PATH) - 1;
     va_list argptr;
     va_start(argptr, format);
     size += vsprintf(buf + size, format, argptr);
     WriteFile(file, buf, size, NULL, NULL);
     va_end(argptr);
-    mutex.unlock();
 }
 
 bool Cheat::Init(HINSTANCE _hinstDLL)
@@ -1618,6 +1612,7 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
     hinstDLL = _hinstDLL;
     if (!Logger::Init())
     {
+        MessageBoxA(nullptr, "Couldn't init Logger", "Error", 0);
         return false;
     };
     if (!K32GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &gBaseMod, sizeof(MODULEINFO))) 

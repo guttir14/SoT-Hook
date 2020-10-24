@@ -52,7 +52,7 @@ inline bool RemoteInject(const HANDLE& process, const std::wstring& mod)
     return true;
 }
 
-int main(int argc, const char* argv[]) {
+int wmain(int argc, wchar_t* argv[]) {
     const DWORD pid = GetProcessIdByName("SoTGame.exe");
     if (!pid)
     {
