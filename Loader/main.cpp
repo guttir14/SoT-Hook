@@ -88,7 +88,6 @@ init:
 
 inline bool RemoteInject(const HANDLE& process, const std::wstring& mod)
 {
-    
     if (!SetAccessControl(mod.c_str(), L"S-1-15-2-1")) return false;
     auto len = mod.capacity() * sizeof(wchar_t);
     LPVOID alloc = VirtualAllocEx(process, 0, len, MEM_COMMIT, PAGE_READWRITE);
@@ -111,19 +110,26 @@ int wmain(int argc, wchar_t* argv[]) {
     const HANDLE process = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
     if (process == INVALID_HANDLE_VALUE)
     {
-        printf("Couldn't get process handle\n");
+        printf("Can't get process handle\n");
         return 1;
     }
     const fs::path workingDir = fs::path(argv[0]).remove_filename();
     fs::path library;
     if (!GetFileExtFromDir(workingDir, ".dll", library))
     {
-        printf("Couldn't find dynamic library in the current folder\n");
+        printf("Can't find dynamic library in the current folder\n");
         return 1;
     };
-    if (!RemoteInject(process, library.wstring()) || !HasModule(pid, library.filename().string().c_str()))
+
+    const auto modName = library.filename().string();
+    if (HasModule(pid, modName.c_str()))
     {
-        printf("Couldn't inject module\n");
+        printf("%s has been loaded to process already\n", modName.c_str());
+        return 1;
+    }
+    if (!RemoteInject(process, library.wstring()) || !HasModule(pid, modName.c_str()))
+    {
+        printf("Injection has failed or module has unloaded already\n");
         return 1;
     };
     printf("Successfully injected!\n");

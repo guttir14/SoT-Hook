@@ -5,7 +5,13 @@
 #include <imgui/imgui_impl_win32.h>
 #include <HookLib/HookLib.h>
 
-//#define XBOX
+#if 1
+#define STEAM
+#endif
+
+#if 0
+#define UWPDEBUG
+#endif
 
 namespace fs = std::filesystem;
 
@@ -122,7 +128,6 @@ bool Cheat::Renderer::Drawing::RenderSkeleton(AController* const controller, USk
             }
             previousBone = screen;
         }
-
     }
     
     return true;
@@ -130,32 +135,26 @@ bool Cheat::Renderer::Drawing::RenderSkeleton(AController* const controller, USk
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI Cheat::Renderer::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+{ 
     if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam) && bIsOpen) return true;
     if (bIsOpen)
     {
         ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-        if (imgui_cursor == ImGuiMouseCursor_None)
+        LPTSTR win32_cursor = IDC_ARROW;
+        switch (imgui_cursor)
         {
-            SetCursorOriginal(NULL);
+        case ImGuiMouseCursor_Arrow:        win32_cursor = IDC_ARROW; break;
+        case ImGuiMouseCursor_TextInput:    win32_cursor = IDC_IBEAM; break;
+        case ImGuiMouseCursor_ResizeAll:    win32_cursor = IDC_SIZEALL; break;
+        case ImGuiMouseCursor_ResizeEW:     win32_cursor = IDC_SIZEWE; break;
+        case ImGuiMouseCursor_ResizeNS:     win32_cursor = IDC_SIZENS; break;
+        case ImGuiMouseCursor_ResizeNESW:   win32_cursor = IDC_SIZENESW; break;
+        case ImGuiMouseCursor_ResizeNWSE:   win32_cursor = IDC_SIZENWSE; break;
+        case ImGuiMouseCursor_Hand:         win32_cursor = IDC_HAND; break;
+        case ImGuiMouseCursor_NotAllowed:   win32_cursor = IDC_NO; break;
         }
-        else
-        {
-            LPTSTR win32_cursor = IDC_ARROW;
-            switch (imgui_cursor)
-            {
-            case ImGuiMouseCursor_Arrow:        win32_cursor = IDC_ARROW; break;
-            case ImGuiMouseCursor_TextInput:    win32_cursor = IDC_IBEAM; break;
-            case ImGuiMouseCursor_ResizeAll:    win32_cursor = IDC_SIZEALL; break;
-            case ImGuiMouseCursor_ResizeEW:     win32_cursor = IDC_SIZEWE; break;
-            case ImGuiMouseCursor_ResizeNS:     win32_cursor = IDC_SIZENS; break;
-            case ImGuiMouseCursor_ResizeNESW:   win32_cursor = IDC_SIZENESW; break;
-            case ImGuiMouseCursor_ResizeNWSE:   win32_cursor = IDC_SIZENWSE; break;
-            case ImGuiMouseCursor_Hand:         win32_cursor = IDC_HAND; break;
-            case ImGuiMouseCursor_NotAllowed:   win32_cursor = IDC_NO; break;
-            }
-            SetCursorOriginal(LoadCursorA(nullptr, win32_cursor));
-        }
+        SetCursorOriginal(LoadCursorA(nullptr, win32_cursor));
+        
     }
     if (!bIsOpen || uMsg == WM_KEYUP) return CallWindowProcA(WndProcOriginal, hwnd, uMsg, wParam, lParam);
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
@@ -202,20 +201,13 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
         Logger::Log("ID3D11Texture2D* surface = %p\n", surface);
 
-        if (FAILED(swapChain->GetDevice(__uuidof(device), reinterpret_cast<PVOID*>(&device))))
-        {
-            return PresentOriginal(swapChain, syncInterval, flags);
-        }
-
-        Logger::Log("ID3D11Device* device = %p\n", device);
-
         goto init;
     cleanup:
         if (context)
         {
             context->Release();
             context = nullptr;
-        } 
+        }
         else if (surface) surface->Release();
         if (renderTargetView)
         {
@@ -229,10 +221,13 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
         }
         return PresentOriginal(swapChain, syncInterval, flags);
     init:
-        if (FAILED(device->CreateRenderTargetView(surface, nullptr, &renderTargetView))) 
-        {
-            goto cleanup;
-        };
+
+        if (FAILED(swapChain->GetDevice(__uuidof(device), reinterpret_cast<PVOID*>(&device)))) goto cleanup;
+
+        Logger::Log("ID3D11Device* device = %p\n", device);
+
+        
+        if (FAILED(device->CreateRenderTargetView(surface, nullptr, &renderTargetView))) goto cleanup;
 
         Logger::Log("ID3D11RenderTargetView* renderTargetView = %p\n", renderTargetView);
 
@@ -253,17 +248,21 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &config);
             io.IniFilename = nullptr;
         }
-        
-
+#ifdef STEAM
         DXGI_SWAP_CHAIN_DESC desc;
         swapChain->GetDesc(&desc);
-        gameWindow = desc.OutputWindow;
-        Logger::Log("gameWindow = %p\n", desc.OutputWindow);
-    
-        if (!ImGui_ImplWin32_Init(desc.OutputWindow)) goto cleanup;
+        auto& window = desc.OutputWindow;
+        gameWindow = window;
+#else
+        auto window = FindWindowA("Windows.UI.Core.CoreWindow", "Sea of Thieves");
+        gameWindow = window;
+#endif
+        Logger::Log("gameWindow = %p\n", window);
+        if (!ImGui_ImplWin32_Init(window)) goto cleanup;
         if (!ImGui_ImplDX11_Init(device, context)) goto cleanup;
         if (!ImGui_ImplDX11_CreateDeviceObjects()) goto cleanup;
         Logger::Log("ImGui initialized successfully!\n");
+
         HookInput();
     }
 
@@ -280,8 +279,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Always);
     ImGui::SetWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Always);
    
-    auto drawList = ImGui::GetCurrentWindow()->DrawList;
-    
+    auto drawList = ImGui::GetCurrentWindow()->DrawList; 
     try 
     {
         do 
@@ -331,7 +329,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             aimBest.target = nullptr;
             aimBest.best = FLT_MAX;
 
-            for (auto l = 0; l < levels.Count; l++)
+            for (auto l = 0u; l < levels.Count; l++)
             {
                 auto const level = levels[l];
                 if (!level) continue;
@@ -339,7 +337,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 if (!actors.Data) continue;
 
                 // todo: make functions for similar code 
-                for (auto a = 0; a < actors.Count; a++)
+                for (auto a = 0u; a < actors.Count; a++)
                 {
                     auto const actor = actors[a];
                     if (!actor) continue;
@@ -878,7 +876,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                         auto const damage = actor->GetHullDamage();
                                         if (!damage) continue;
                                         const auto holes = damage->ActiveHullDamageZones;
-                                        for (auto h = 0; h < holes.Count; h++)
+                                        for (auto h = 0u; h < holes.Count; h++)
                                         {
                                             auto const hole = holes[h];
                                             const FVector location = hole->K2_GetActorLocation();
@@ -964,7 +962,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                             if (!islandDataAsset) break;
                             auto const islandDataEntries = islandDataAsset->IslandDataEntries;
                             if (!islandDataEntries.Data) break;
-                            for (auto i = 0; i < islandDataEntries.Count; i++)
+                            for (auto i = 0u; i < islandDataEntries.Count; i++)
                             {
                                 auto const island = islandDataEntries[i];
                                 auto const WorldMapData = island->WorldMapData;
@@ -1105,8 +1103,13 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::End();
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
-   
+
+#ifdef STEAM
     if (ImGui::IsKeyPressed(VK_INSERT)) bIsOpen = !bIsOpen;
+#else
+    static const FKey insert("Insert");
+    if (cache.localController && cache.localController->WasInputKeyJustPressed(insert)) { bIsOpen = !bIsOpen; } // todo: change this shit
+#endif
 
     if (bIsOpen) {
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.7f), ImGuiCond_Once);
@@ -1346,7 +1349,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         do {
                             wchar_t buf[MAX_PATH];
                             GetModuleFileNameW(hinstDLL, buf, MAX_PATH);
-                            fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
+                            fs::path path = fs::path(buf).remove_filename() / ".settings";
                             auto file = CreateFileW(path.wstring().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
                             if (file == INVALID_HANDLE_VALUE) break;
                             DWORD written;
@@ -1360,7 +1363,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         do {
                             wchar_t buf[MAX_PATH];
                             GetModuleFileNameW(hinstDLL, buf, MAX_PATH);
-                            fs::path path = fs::path(buf).remove_filename() / "sothook.cfg";
+                            fs::path path = fs::path(buf).remove_filename() / ".settings";
                             auto file = CreateFileW(path.wstring().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
                             if (file == INVALID_HANDLE_VALUE) break;
                             DWORD readed;
@@ -1436,6 +1439,7 @@ HRESULT Cheat::Renderer::ResizeHook(IDXGISwapChain* swapChain, UINT bufferCount,
     return ResizeOriginal(swapChain, bufferCount, width, height, newFormat, swapChainFlags);
 }
 
+
 inline bool Cheat::Renderer::Init()
 {
     HMODULE dxgi = GetModuleHandleA("dxgi.dll");
@@ -1472,11 +1476,13 @@ inline bool Cheat::Renderer::Init()
 
     if (!SetHook(SetCursorPos, SetCursorPosHook, reinterpret_cast<void**>(&SetCursorPosOriginal)))
     {
+        Logger::Log("Can't hook SetCursorPos\n");
         return false;
     };
 
     if (!SetHook(SetCursor, SetCursorHook, reinterpret_cast<void**>(&SetCursorOriginal)))
     {
+        Logger::Log("Can't hook SetCursor\n");
         return false;
     };
 
@@ -1585,7 +1591,9 @@ inline BYTE* Cheat::Tools::PacthFn(HMODULE mod, BYTE* sig, SIZE_T sigSize, BYTE*
 inline bool Cheat::Tools::FindNameArray()
 {
     static BYTE sig[] = { 0x48, 0x8b, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x85, 0xff, 0x75, 0x3c };
-    FName::GNames = *reinterpret_cast<decltype(FName::GNames)*>(FindPointer(sig, sizeof(sig)));
+    auto address = reinterpret_cast<decltype(FName::GNames)*>(FindPointer(sig, sizeof(sig)));
+    if (!address) return 0;
+    FName::GNames = *address;
     return FName::GNames;
 }
 
@@ -1613,26 +1621,30 @@ inline bool Cheat::Tools::InitSDK()
 inline bool Cheat::Logger::Init()
 {
     fs::path log;
-#ifndef XBOX
+#ifdef STEAM
     wchar_t buf[MAX_PATH];
     if (!GetModuleFileNameW(hinstDLL, buf, MAX_PATH)) return false;
     log = fs::path(buf).remove_filename() / "log.txt";
 #else
+#ifdef UWPDEBUG
     log = "C:\\Users\\dimae\\AppData\\Local\\Packages\\Microsoft.SeaofThieves_8wekyb3d8bbwe\\TempState\\log.txt";
+#else
+    return true;
+#endif
 #endif
     file = CreateFileW(log.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     return file != INVALID_HANDLE_VALUE;
-
-
 }
 
 inline bool Cheat::Logger::Remove()
 {
+    if (!file) return true;
     return CloseHandle(file);
 }
 
 void Cheat::Logger::Log(const char* format, ...)
 {
+#if defined STEAM || defined UWPDEBUG
     SYSTEMTIME rawtime;
     GetSystemTime(&rawtime);
     char buf[MAX_PATH];
@@ -1642,6 +1654,7 @@ void Cheat::Logger::Log(const char* format, ...)
     size += vsprintf(buf + size, format, argptr);
     WriteFile(file, buf, size, NULL, NULL);
     va_end(argptr);
+#endif
 }
 
 bool Cheat::Init(HINSTANCE _hinstDLL)
@@ -1658,38 +1671,40 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
     Logger::Log("SoTGame.exe base: %p\n", gBaseMod.lpBaseOfDll);
     if (!Tools::FindNameArray()) 
     {
-        Logger::Log("Couldn't find NameArray!\n");
+        Logger::Log("Can't find NameArray!\n");
         return false;
     }
     Logger::Log("NameArray: %p\n", FName::GNames);
     if (!Tools::FindObjectsArray()) 
     {
-        Logger::Log("Couldn't find ObjectsArray!\n");
+        Logger::Log("Can't find ObjectsArray!\n");
         return false;
     } 
     Logger::Log("ObjectsArray: %p\n", UObject::GObjects);
     if (!Tools::FindWorld())
     {
-        Logger::Log("Couldn't find World!\n");
+        Logger::Log("Can't find World!\n");
         return false;
     }
     Logger::Log("World: %p\n", UWorld::GWorld);
     if (!Tools::InitSDK())
     {
-        Logger::Log("Couldn't find important objects!\n");
+        Logger::Log("Can't find important objects!\n");
         return false;
     };
     
     if (!Renderer::Init())
     {
-        Logger::Log("Couldn't initialize renderer\n");
+        Logger::Log("Can't initialize renderer\n");
         return false;
     }
 
-    Hacks::Init();
+    //Hacks::Init();
 
+#ifdef STEAM
     auto t = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ClearingThread), nullptr, 0, nullptr);
     if (t) CloseHandle(t);
+#endif
 
     return true;
 }
@@ -1715,9 +1730,10 @@ void Cheat::Tests()
     if (!localPlayers.Data) return;
     auto localPlayer = localPlayers[0];
     auto localController = localPlayer->PlayerController;
-    if (!localController) return;
-    Logger::Log("camera: %p\n", localController->PlayerCameraManager);
-    Logger::Log("localCharacter: %p\n", localController->Character);
+    FKey insert("Insert");
+
+    Logger::Log("localController: %p\n", localController);
+    Logger::Log("Insert: %p\n", insert.KeyName.ComparisonIndex);
     */
 }
 
@@ -1731,7 +1747,7 @@ bool Cheat::Remove()
         return false;
     };
 
-    Hacks::Remove();
+    //Hacks::Remove();
 
     // some other stuff...
 

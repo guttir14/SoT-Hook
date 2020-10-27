@@ -9,10 +9,16 @@
 
 struct FName
 {
-	int ComparisonIndex;
-	int Number;
+	int ComparisonIndex = 0;
+	int Number = 0;
 
 	static inline TNameEntryArray* GNames = nullptr;
+
+	static const char* GetNameByIdFast(int Id) {
+		auto NameEntry = GNames->GetById(Id);
+		if (!NameEntry) return nullptr;
+		return NameEntry->GetAnsiName();
+	}
 
 	static std::string GetNameById(int Id) {
 		auto NameEntry = GNames->GetById(Id);
@@ -35,6 +41,20 @@ struct FName
 	inline bool operator==(const FName& other) const {
 		return ComparisonIndex == other.ComparisonIndex;
 	};
+
+	FName() {}
+
+	FName(const char* find) {
+		for (auto i = 6000; i < GNames->NumElements; i++)
+		{
+			auto name = GetNameByIdFast(i);
+			if (!name) continue;
+			if (strcmp(name, find) == 0) {
+				ComparisonIndex = i;
+				return;
+			};
+		}
+	}
 };
 
 struct FUObjectItem
@@ -271,6 +291,16 @@ struct APlayerCameraManager {
 	}
 };
 
+
+struct FKey
+{
+	FName KeyName;
+	unsigned char UnknownData00[0x18] = {};
+
+	FKey() {};
+	FKey(const char* InName) : KeyName(FName(InName)) {}
+};
+
 struct AController {
 
 	char pad_0000[0x460]; //0x0000
@@ -307,6 +337,19 @@ struct AController {
 		params.WorldLocation = WorldLocation;
 		ProcessEvent(this, fn, &params);
 		ScreenLocation = params.ScreenLocation;
+		return params.ReturnValue;
+	}
+
+	bool WasInputKeyJustPressed(const FKey& Key) {
+		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerController.WasInputKeyJustPressed");
+		struct
+		{
+			FKey Key;
+			bool ReturnValue = false;
+		} params;
+
+		params.Key = Key;
+		ProcessEvent(this, fn, &params);
 		return params.ReturnValue;
 	}
 
@@ -397,7 +440,7 @@ struct USkeletalMeshComponent {
 
 
 
-	bool GetBone(const int id, const FMatrix& componentToWorld, FVector& pos) {
+	bool GetBone(const uint32_t id, const FMatrix& componentToWorld, FVector& pos) {
 		auto bones = SpaceBasesArray[CurrentReadSpaceBases];
 		if (id >= bones.Count) return false;
 		const auto& bone = bones[id];
@@ -748,6 +791,8 @@ public:
 		return params;
 	}
 };
+
+
 
 class UKismetMathLibrary {
 private:

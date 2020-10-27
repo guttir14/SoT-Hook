@@ -5,9 +5,6 @@
 #include <imgui/imgui.h>
 #include "SDK.h"
 
-
-
-
 class Cheat {
 private:
     static inline struct Cache{
@@ -197,8 +194,6 @@ private:
 		static inline bool InitSDK();
 		
 	};
-
-
 	class Logger {
 	private:
 		static inline HANDLE file = nullptr;
@@ -217,5 +212,3 @@ private:
 	inline static MODULEINFO gBaseMod;
 	inline static HINSTANCE hinstDLL;
 };
-
-

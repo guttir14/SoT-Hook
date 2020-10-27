@@ -32,3 +32,10 @@
 *.app
 
 .vs
+bin/**
+lib/**
+Cheat/Release/**
+Loader/Release/**
+Loader/Debug/**
+Menu/Release/**
+Menu/Debug/**
