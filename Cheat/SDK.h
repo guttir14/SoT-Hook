@@ -86,12 +86,12 @@ class UObject
 public:
 	UObject(UObject* addr) { *this = addr; }
 	static inline TUObjectArray* GObjects = nullptr;
-	void* Vtable;
-	int ObjectFlags;
-	int InternalIndex;
-	UClass* Class;
-	FName Name;
-	UObject* Outer;
+	void* Vtable; // 0x0
+	int ObjectFlags; // 0x8
+	int InternalIndex; // 0xC
+	UClass* Class; // 0x10
+	FName Name; // 0x18
+	UObject* Outer; // 0x20
 
 	std::string GetName() const;
 
@@ -256,8 +256,8 @@ public:
 
 
 struct APlayerState {
-	char pad[0x460];
-	FString PlayerName;
+	char pad[0x468]; // 0x0
+	FString PlayerName; // 0x468
 };
 
 struct FMinimalViewInfo {
@@ -303,22 +303,12 @@ struct FKey
 
 struct AController {
 
-	char pad_0000[0x460]; //0x0000
-	void* Pawn; //0x0460
-	char pad_0468[8]; //0x0468
-	class ACharacter* Character; //0x0470
-	void* PlayerState; //0x0478
-	void* TransformComponent; //0x0480
-	FVector ControlRotation; //0x0488
-	char pad_04A0[52]; //0x0494
-	void* AcknowledgedPawn; //0x04C8
-	char pad_04D0[0x10]; //0x04D0
-	void* MyHUD; //0x04E0
-	APlayerCameraManager* PlayerCameraManager; //0x04E8
-	char pad_04F0[0x138]; // 0x4F0
-	FRotator RotationInput; // 0x618
-	char pad_0624[0xF05]; // 0x624
-	bool IdleDisconnectEnabled; // 0x1529(0x0001)
+	char pad_0000[0x0478]; //0x0000
+	class ACharacter* Character; //0x0478
+	char pad_0480[0x70]; // 0x480
+	APlayerCameraManager* PlayerCameraManager; //0x04F0
+	char pad_04f8[0x1049]; // 0x04F8
+	bool IdleDisconnectEnabled; // 0x1541(0x0001)
 
 	void SendToConsole(FString& cmd){
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.PlayerController.SendToConsole");
@@ -423,7 +413,7 @@ struct USkeletalMeshComponent {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.SkinnedMeshComponent.GetBoneName");
 		struct
 		{
-			int BoneIndex;
+			int BoneIndex = 0;
 			FName ReturnValue;
 		} params;
 		params.BoneIndex = BoneIndex;
@@ -461,7 +451,7 @@ struct AShipInternalWater {
 };
 
 struct AHullDamage {
-	char pad[0x4a0];
+	char pad[0x4a8];
 	TArray<class ACharacter*> ActiveHullDamageZones;
 };
 
@@ -477,8 +467,6 @@ struct UDrowningComponent {
 struct AFauna {
 	char pad1[0x888];
 	FString* DisplayName; // 0x0888
-	char pad2[0xE0];
-	UHealthComponent* HealthComponent; // 0x0970 
 };
 
 enum class ESwimmingCreatureType : uint8_t
@@ -491,10 +479,10 @@ enum class ESwimmingCreatureType : uint8_t
 };
 
 struct ASharkPawn {
-	char pad1[0x0538];
-	USkeletalMeshComponent* Mesh; // 0x0538
-	char pad2[0x4C];
-	ESwimmingCreatureType SwimmingCreatureType; // 0x058C
+	char pad1[0x0540];
+	USkeletalMeshComponent* Mesh; // 0x0540
+	char pad2[0x5C]; // 0x0548
+	ESwimmingCreatureType SwimmingCreatureType; // 0x05A4
 };
 
 
@@ -511,8 +499,8 @@ struct UItemDesc {
 };
 
 struct AItemInfo {
-	char pad[0x04B0];
-	UItemDesc* Desc; // 0x04B0(0x0008) (Net, ZeroConstructor, IsPlainOldData)
+	char pad[0x04B8];
+	UItemDesc* Desc; // 0x04B8
 };
 
 struct UWieldedItemComponent {
@@ -526,9 +514,9 @@ struct FWeaponProjectileParams {
 };
 
 struct FProjectileWeaponParameters {
-	char pad[0x50];
-	float ProjectileMaximumRange;  // 0x0050
-	char pad2[0x1C]; // 0x54
+	char pad[0x0054];
+	float ProjectileMaximumRange;  // 0x0054
+	char pad2[0x18]; // 0x58
 	FWeaponProjectileParams AmmoParams; // 0x0070
 };
 
@@ -545,7 +533,7 @@ struct UWorldMapIslandDataAsset {
 struct UIslandDataAssetEntry {
 	char pad[0x40];
 	UWorldMapIslandDataAsset* WorldMapData; // 0x0040
-	char pad2[0x68];
+	char pad2[0x68]; // 0x48
 	FString* LocalisedName; // 0x00B0
 };
 
@@ -556,13 +544,13 @@ struct UIslandDataAsset
 };
 
 struct AIslandService {
-	char pad[0x4d0];
-	UIslandDataAsset* IslandDataAsset; // 0x4d0
+	char pad[0x4d8];
+	UIslandDataAsset* IslandDataAsset; // 0x4d8
 };
 
 struct ASlidingDoor {
-	char pad_0x0[0x050C];
-	FVector InitialDoorMeshLocation; // 0x050C
+	char pad_0x0[0x0514];
+	FVector InitialDoorMeshLocation; // 0x0514
 	void OpenDoor() {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.SkeletonFortDoor.OpenDoor");
 		ProcessEvent(this, fn, nullptr);
@@ -580,15 +568,8 @@ struct USceneComponent {
 
 struct APuzzleVault {
 	
-	char pad_0x04E8[0x0580]; // 0x0
-	USceneComponent* PlinthItemSpawnMesh; // 0x0580
-	char pad_0x0588[0xAB0]; // 0x0588
-	FString* VaultName; // 0x1038
-	char pad_0x1040[0x30]; // 0x1040
-	ASlidingDoor* OuterDoor; // 0x1070
-	char pad_0x1078[0x188]; // 0x1078
-	ACharacter* ReservationTotem; // 0x1200
-
+	char pad[0x1080];
+	ASlidingDoor* OuterDoor; // 0x1080
 
 	void OpenVaultDoor() {
 		static auto fn = UObject::FindObject<UFunction>("Function Athena.PuzzleVault.OpenVaultDoor");
@@ -607,7 +588,7 @@ struct AWorldSettings {
 };
 
 struct AAthenaGameState {
-	char pad[0x640];
+	char pad[0x0648];
 	UINT64* WindService;
 	UINT64* PlayerManagerService;
 	UINT64* ShipService;
@@ -618,23 +599,24 @@ struct AAthenaGameState {
 	UINT64* CrewService;
 	UINT64* ContestZoneService;
 	UINT64* ContestRowboatsService;
-	AIslandService* IslandService; // 0x0690
+	AIslandService* IslandService; // 0x0698
 };
 
 class ACharacter : public UObject {
 public:
-	char pad1[0x450]; // 48
-	APlayerState* PlayerState;  // 0x478
-	char pad2[0x10];
-	AController* Controller; // 0x490
-	char pad3[0x28];
-	USkeletalMeshComponent* Mesh; // 0x4c0
-	char pad4[0x3B8]; // 0x4c8
-	UWieldedItemComponent* WieldedItemComponent; // 0x880
-	char pad5[0x20]; // 0x888
-	UHealthComponent* HealthComponent; // 0x08A8
-	char pad6[0x410]; // 0x8B0
-	UDrowningComponent* DrowningComponent; // 0xCC0
+	
+	char pad1[0x458]; // 0x28
+	APlayerState* PlayerState;  // 0x0480
+	char pad2[0x10]; // 0x0488
+	AController* Controller; // 0x0498
+	char pad3[0x28]; // 0x4A0
+	USkeletalMeshComponent* Mesh; // 0x04C8
+	char pad4[0x3C0]; // 0x4D0
+	UWieldedItemComponent* WieldedItemComponent; // 0x0890
+	char pad5[0x20]; // 0x0898
+	UHealthComponent* HealthComponent; // 0x08B8
+	char pad6[0x418]; // 0x8C0
+	UDrowningComponent* DrowningComponent; // 0x0CD8
 
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.GetActorBounds");

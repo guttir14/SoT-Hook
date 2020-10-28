@@ -280,6 +280,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     ImGui::SetWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Always);
    
     auto drawList = ImGui::GetCurrentWindow()->DrawList; 
+    
     try 
     {
         do 
@@ -1060,9 +1061,6 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     localController->AddYawInput(aimBest.delta.Yaw * smoothness);
                     localController->AddPitchInput(aimBest.delta.Pitch * -smoothness);
                 }
-
-                  
-
                
             }
                 
@@ -1721,20 +1719,7 @@ void Cheat::ClearingThread()
 
 void Cheat::Tests()
 {
-    /*
-    auto world = *UWorld::GWorld;
-    if (!world) return;
-    auto game = world->GameInstance;
-    if (!game) return;
-    auto localPlayers = game->LocalPlayers;
-    if (!localPlayers.Data) return;
-    auto localPlayer = localPlayers[0];
-    auto localController = localPlayer->PlayerController;
-    FKey insert("Insert");
-
-    Logger::Log("localController: %p\n", localController);
-    Logger::Log("Insert: %p\n", insert.KeyName.ComparisonIndex);
-    */
+  
 }
 
 bool Cheat::Remove()
