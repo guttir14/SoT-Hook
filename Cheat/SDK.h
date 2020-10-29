@@ -509,7 +509,7 @@ struct UWieldedItemComponent {
 };
 
 struct FWeaponProjectileParams {
-	char pad[0x10];
+	char pad[0x10]; 
 	float Velocity;
 };
 
@@ -633,6 +633,13 @@ public:
 
 		Origin = params.Origin;
 		BoxExtent = params.BoxExtent;
+	}
+
+	ACharacter* GetCurrentShip() {
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.AthenaCharacter.GetCurrentShip");
+		ACharacter* ReturnValue;
+		ProcessEvent(this, fn, &ReturnValue);
+		return ReturnValue;
 	}
 
 	ACharacter* GetAttachParentActor() {

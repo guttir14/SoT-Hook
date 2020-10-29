@@ -307,7 +307,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             if (!localCharacter) break;
             const auto levels = world->Levels;
             if (!levels.Data) break;
-            static FVector localLoc_prev = {};
+            //static FVector localLoc_prev = {};
             const auto localLoc = localCharacter->K2_GetActorLocation();
             
             
@@ -1051,8 +1051,19 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     if (bulletV != 0.f)
                     {
                         const float BulletTime = dist / fabs(bulletV);
-                        const FVector targetV = aimBest.target->GetVelocity(); // todo: somehow calculate world velocity
-                        const FVector localV = (localLoc - localLoc_prev) * io.Framerate;
+                        FVector targetV = aimBest.target->GetVelocity(); // todo: somehow calculate world velocity
+                        FVector localV = localCharacter->GetVelocity();
+
+                        if (auto const localShip = localCharacter->GetCurrentShip())
+                        {
+                            localV += localShip->GetVelocity();
+                        }
+
+                        if (auto const targetShip = aimBest.target->GetCurrentShip())
+                        {
+                            targetV += targetShip->GetVelocity();
+                        }
+
                         aimBest.location += (targetV - localV) * BulletTime;
                         aimBest.delta = UKismetMathLibrary::NormalizedDeltaRotator(UKismetMathLibrary::FindLookAtRotation(cameraLoc, aimBest.location), cameraRot);
                     }
@@ -1088,7 +1099,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 }
             }
 
-            localLoc_prev = localLoc;
+            //localLoc_prev = localLoc;
 
         } while (false);
     }
@@ -1719,7 +1730,10 @@ void Cheat::ClearingThread()
 
 void Cheat::Tests()
 {
-  
+    auto world = *UWorld::GWorld;
+    if (!world) return;
+    auto localCharacter = world->GameInstance->LocalPlayers[0]->PlayerController->Character;
+    Logger::Log("%p\n", localCharacter->GetCurrentShip());
 }
 
 bool Cheat::Remove()
