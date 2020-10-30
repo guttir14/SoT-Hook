@@ -8,6 +8,9 @@
 #include <imgui\imgui_impl_dx11.h>
 #include <stdio.h>
 #include <imgui\imgui_internal.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 HWND window = nullptr;
 ID3D11Device* device = nullptr;
@@ -109,6 +112,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
+struct Vec2 : public ImVec2 {
+	using ImVec2::ImVec2;
+	FORCEINLINE float Size() const { return sqrtf(x * x + y* y); }
+	FORCEINLINE Vec2 operator*(float Scale) const { return Vec2(x * Scale, y * Scale); }
+	FORCEINLINE Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
+	FORCEINLINE Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
+};
+
 
 INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
@@ -144,6 +155,8 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ImGui_ImplDX11_Init(device, context);
 
 	MSG msg{};
+	float time = 0.f;
+	Vec2 TL;
 	while (msg.message != WM_QUIT) {
 
 		if (PeekMessageA(&msg, NULL, 0U, 0U, PM_REMOVE)) {
@@ -221,6 +234,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				struct {
 					bool bEnable = false;
 					bool bName = false;
+					bool bShipwrecks = false;
 					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} items;
 				struct {
@@ -239,6 +253,13 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ImVec4 colorInv = { 0.7f, 1.f, 0.f, 1.f };
 					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} sharks;
+				struct {
+					bool bEnable = false;
+					bool bName = false;
+					bool bDoor = false;
+					bool bKeyPlace = false;
+					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+				} puzzles;
 				struct {
 					bool bCrosshair = false;
 					bool bOxygen = false;
@@ -273,23 +294,50 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				struct {
 					bool bEnable = false;
 					bool bInfiniteAmmo = false;
+					bool bIdleKick = false;
+					float fGameSpeed = 1.f;
 				} client;
 			} misc;
 		} cfg;
 
 
-		static bool bIsOpen = true;
-		if (ImGui::IsKeyPressed(VK_INSERT) & 0x1) {
-			if (bIsOpen) {
-				bIsOpen = false;
-			}
-			else {
-				bIsOpen = true;
-			}
-		}
+		static bool bIsOpen = false;
+		if (ImGui::IsKeyPressed(VK_INSERT) & 0x1) bIsOpen = !bIsOpen;
+
+		auto drawList = ImGui::GetForegroundDrawList();
+		const Vec2 center = { io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f };
+
+		float BS = 3.f;
+		Vec2 STL = { center.x - 200.f, center.y };
+		Vec2 TV = { 4.f, 2.f };
+		Vec2 SLL = center;
+		Vec2 LV = { 0, 0.f };
+
+		Vec2 RL = SLL - STL;
+		Vec2 RV = TV - LV;
+		
+		
+		ImU32 red = ImGui::GetColorU32(IM_COL32(255, 0, 0, 255));
+		ImU32 green = ImGui::GetColorU32(IM_COL32(0, 255, 0, 255));
+		ImU32 blue = ImGui::GetColorU32(IM_COL32(0, 100, 255, 255));
+		ImU32 yellow = ImGui::GetColorU32(IM_COL32(255, 255, 0, 255));
+
+		char buf[250];
+		sprintf(buf, "FPS: %f", io.Framerate);
+		drawList->AddText({ 50.f, 50.f }, green, buf);
 
 		
-		
+		if (TL.x < 0 || TL.y < 0 || TL.x > io.DisplaySize.x || TL.y > io.DisplaySize.y) time = 0.f;
+		TL = STL + RV * time;
+		drawList->AddCircleFilled(SLL, 3.f, green);
+		drawList->AddCircleFilled(TL, 3.f, red);
+		drawList->AddLine(SLL, TL, blue);
+		const float R = BS * time;
+		drawList->AddCircle(SLL, R, yellow);
+
+		if ( fabs((TL - SLL).Size() - R) <= 0.01f) time = 0.f;
+
+		time += 0.005f;
 
 		if (bIsOpen) {
 			ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.7f), ImGuiCond_Once);
@@ -380,6 +428,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					{
 						ImGui::Checkbox("Enable", &cfg.visuals.items.bEnable);
 						ImGui::Checkbox("Draw name", &cfg.visuals.items.bName);
+						ImGui::Checkbox("Draw shipwrecks", &cfg.visuals.items.bShipwrecks);
 						ImGui::ColorEdit4("Text color", &cfg.visuals.items.textCol.x, 0);
 					}
 					ImGui::EndChild();
@@ -416,6 +465,20 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 					ImGui::NextColumn();
 
+					ImGui::Text("Puzzles");
+					if (ImGui::BeginChild("PuzzlesSettings", ImVec2(0.f, 220.f), true, 0))
+					{
+
+						ImGui::Checkbox("Enable", &cfg.visuals.puzzles.bEnable);
+						ImGui::Checkbox("Draw doors", &cfg.visuals.puzzles.bDoor);
+						ImGui::ColorEdit4("Text color", &cfg.visuals.puzzles.textCol.x, 0);
+
+					}
+					ImGui::EndChild();
+					ImGui::Columns();
+
+					ImGui::Columns(2, "CLM5", false);
+
 					ImGui::Text("Client");
 					if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 220.f), true, 0))
 					{
@@ -443,6 +506,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						ImGui::ColorEdit4("Crosshair color", &cfg.visuals.client.crosshairColor.x, ImGuiColorEditFlags_DisplayRGB);
 
 					}
+
 					ImGui::EndChild();
 					ImGui::Columns();
 
@@ -495,8 +559,6 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 				if (ImGui::BeginTabItem("Misc")) {
 
-					
-
 					ImGui::Text("Global Misc");
 					if (ImGui::BeginChild("Global", ImVec2(0.f, 38.f), true, 0))
 					{
@@ -508,17 +570,52 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ImGui::Text("Client");
 					if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 365.f), true, 0))
 					{
+						ImGui::Checkbox("Enable", &cfg.misc.client.bEnable);
+						ImGui::Checkbox("Disable idle kick", &cfg.misc.client.bIdleKick);
+						ImGui::Separator();
+						if (ImGui::Button("Save settings"))
+						{
+							do {
+								wchar_t buf[MAX_PATH];
+								GetModuleFileNameW(GetModuleHandleA(0), buf, MAX_PATH);
+								fs::path path = fs::path(buf).remove_filename() / "menu.cfg";
+								auto file = CreateFileW(path.wstring().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+								if (file == INVALID_HANDLE_VALUE) break;
+								DWORD written;
+								if (WriteFile(file, &cfg, sizeof(cfg), &written, 0)) ImGui::OpenPopup("##SettingsSaved");
+								CloseHandle(file);
+							} while (false);
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Load settings"))
+						{
+							do {
+								wchar_t buf[MAX_PATH];
+								GetModuleFileNameW(GetModuleHandleA(0), buf, MAX_PATH);
+								fs::path path = fs::path(buf).remove_filename() / "menu.cfg";
+								auto file = CreateFileW(path.wstring().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+								if (file == INVALID_HANDLE_VALUE) break;
+								DWORD readed;
+								if (ReadFile(file, &cfg, sizeof(cfg), &readed, 0))  ImGui::OpenPopup("##SettingsLoaded");
+								CloseHandle(file);
+							} while (false);
+						}
+						ImGui::SameLine();
 						if (ImGui::Button("Tests")) {
-							ImGui::OpenPopup("##SettingsLoaded");
-
-
-							//auto h = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Tests), nullptr, 0, nullptr);
-							//if (h) CloseHandle(h);
+							/*auto h = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Tests), nullptr, 0, nullptr);
+							if (h) CloseHandle(h);*/
 						}
 
 						ImVec2 center(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
 						ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
+						if (ImGui::BeginPopupModal("##SettingsSaved", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+						{
+							ImGui::Text("\nSettings have been saved\n\n");
+							ImGui::Separator();
+							if (ImGui::Button("OK", { 170.f , 0.f })) { ImGui::CloseCurrentPopup(); }
+							ImGui::EndPopup();
+						}
+						ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 						if (ImGui::BeginPopupModal("##SettingsLoaded", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
 						{
 							ImGui::Text("\nSettings have been loaded\n\n");
@@ -526,8 +623,6 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 							if (ImGui::Button("OK", { 170.f , 0.f })) { ImGui::CloseCurrentPopup(); }
 							ImGui::EndPopup();
 						}
-
-						
 					}
 					ImGui::EndChild();
 
@@ -539,14 +634,8 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 				ImGui::EndTabBar();
 			};
-
-			
-
 			ImGui::End();
 		}
-
-		
-
 
 		ImGui::Render();
 		context->OMSetRenderTargets(1, &view, NULL);

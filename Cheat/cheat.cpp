@@ -10,6 +10,8 @@
 #endif
 
 #if 0
+#define STEAMDEBUG
+#elif 0
 #define UWPDEBUG
 #endif
 
@@ -121,7 +123,7 @@ bool Cheat::Renderer::Drawing::RenderSkeleton(AController* const controller, USk
             if (!mesh->GetBone(bone.first[i], comp2world, loc)) return false;
             FVector2D screen;
             if (!controller->ProjectWorldLocationToScreen(loc, screen)) return false;
-            if (previousBone.Length() != 0) {
+            if (previousBone.Size() != 0) {
                 auto ImScreen1 = *reinterpret_cast<ImVec2*>(&previousBone);
                 auto ImScreen2 = *reinterpret_cast<ImVec2*>(&screen);
                 ImGui::GetCurrentWindow()->DrawList->AddLine(ImScreen1, ImScreen2, ImGui::GetColorU32(color));
@@ -307,7 +309,6 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             if (!localCharacter) break;
             const auto levels = world->Levels;
             if (!levels.Data) break;
-            //static FVector localLoc_prev = {};
             const auto localLoc = localCharacter->K2_GetActorLocation();
             
             
@@ -432,9 +433,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         }
                         else {
 
-                            if (cfg.visuals.items.bEnable && actor->isItem()) {
+                            if (cfg.visuals.items.bEnable ) {
 
-                                if (cfg.visuals.items.bName)
+                                if (cfg.visuals.items.bName && actor->isItem())
                                 {
                                     auto location = actor->K2_GetActorLocation();
                                     FVector2D screen;
@@ -448,10 +449,21 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                         sprintf(name + len, " [%d]", dist);
                                         Drawing::RenderText(name, screen, cfg.visuals.items.textCol);
                                     };
+                                    continue;
                                 }
-                            
-
-                                continue;
+                                else if (cfg.visuals.items.bShipwrecks && actor->isShipwreck())
+                                {
+                                    auto location = actor->K2_GetActorLocation();
+                                    FVector2D screen;
+                                    if (localController->ProjectWorldLocationToScreen(location, screen))
+                                    {
+                                        const int dist = localLoc.DistTo(location) * 0.01f;
+                                        char name[0x64];
+                                        sprintf_s(name, "Shipwreck [%d]", dist);
+                                        Drawing::RenderText(name, screen, cfg.visuals.items.textCol);
+                                    };
+                                    continue;
+                                }
                             }
 
                             if (cfg.visuals.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
@@ -928,7 +940,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 }
                                 continue;
                             }
-
+                          
                             /*if (cfg.bBuriedTreasure && actor->isBuriedTreasure()) {
                                 auto location = actor->K2_GetActorLocation();
                                 FVector2D screen;
@@ -1032,45 +1044,60 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 }
             }
 
+#ifdef STEAMDEBUG
+            char buf[250];
+            FVector localV = localCharacter->GetVelocity();
+            if (auto const targetShip = localCharacter->GetCurrentShip())
+            {
+                localV += targetShip->GetVelocity(); 
+            }
+            sprintf(buf, "Speed: %f", localV.Size());
+            Drawing::RenderText(buf, { 20, 100.f }, { 1.f, 1.f, 1.f, 1.f }, true, false);
+#endif
              
             if (aimBest.target != nullptr)
             {
                 FVector2D screen;
                 if (localController->ProjectWorldLocationToScreen(aimBest.location, screen)) 
                 {
-                    drawList->AddLine({ io.DisplaySize.x * 0.5f , io.DisplaySize.y * 0.5f }, { screen.X, screen.Y }, ImGui::GetColorU32(IM_COL32(0, 200, 0, 150)));
+                    drawList->AddLine({ io.DisplaySize.x * 0.5f , io.DisplaySize.y * 0.5f }, { screen.X, screen.Y }, ImGui::GetColorU32(IM_COL32(0, 200, 0, 255)));
                 }
 
                 if (ImGui::IsMouseDown(1))
                 {
-                    // todo: do prediction to moving targets
+                    /*
+                    * LV - Local velocity
+                    * TV - Target velocity
+                    * RV - Target relative velocity
+                    * BS - Bullet speed
+                    * RL - Relative local location
+                    */
 
-                    const float dist = localLoc.DistTo(aimBest.location);
+                    FVector LV = localCharacter->GetVelocity();
+                    if (auto const localShip = localCharacter->GetCurrentShip()) LV += localShip->GetVelocity();
+                    FVector TV = aimBest.target->GetVelocity();
+                    if (auto const targetShip = aimBest.target->GetCurrentShip()) TV += targetShip->GetVelocity();
+                    const FVector RV = TV - LV;
+                    const float BS = localWeapon->WeaponParameters.AmmoParams.Velocity;
+                    const FVector RL = localLoc - aimBest.location;
+                    const float a = RV.Size() - BS * BS;
+                    const float b = (RL * RV * 2.f).Sum();
+                    const float c = RL.SizeSquared();
 
-                    const float bulletV = localWeapon->WeaponParameters.AmmoParams.Velocity;
-                    if (bulletV != 0.f)
+                    const float D = b*b - 4 * a * c;
+                    if (D > 0)
                     {
-                        const float BulletTime = dist / fabs(bulletV);
-                        FVector targetV = aimBest.target->GetVelocity(); // todo: somehow calculate world velocity
-                        FVector localV = localCharacter->GetVelocity();
+                        const float DRoot = sqrtf(D);
+                        const float x1 = (-b + DRoot) / (2 * a);
+                        const float x2 = (-b - DRoot) / (2 * a);
+                        if (x1 >= 0 && x1 >= x2) aimBest.location += RV * x1;
+                        else if (x2 >= 0) aimBest.location += RV * x2;
 
-                        if (auto const localShip = localCharacter->GetCurrentShip())
-                        {
-                            localV += localShip->GetVelocity();
-                        }
-
-                        if (auto const targetShip = aimBest.target->GetCurrentShip())
-                        {
-                            targetV += targetShip->GetVelocity();
-                        }
-
-                        aimBest.location += (targetV - localV) * BulletTime;
                         aimBest.delta = UKismetMathLibrary::NormalizedDeltaRotator(UKismetMathLibrary::FindLookAtRotation(cameraLoc, aimBest.location), cameraRot);
+                        auto smoothness = 1.f / aimBest.smoothness;
+                        localController->AddYawInput(aimBest.delta.Yaw* smoothness);
+                        localController->AddPitchInput(aimBest.delta.Pitch * -smoothness);
                     }
-
-                    auto smoothness = 1.f / aimBest.smoothness;
-                    localController->AddYawInput(aimBest.delta.Yaw * smoothness);
-                    localController->AddPitchInput(aimBest.delta.Pitch * -smoothness);
                 }
                
             }
@@ -1099,8 +1126,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 }
             }
 
-            //localLoc_prev = localLoc;
-
+            
         } while (false);
     }
     catch (...) 
@@ -1209,6 +1235,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 {
                     ImGui::Checkbox("Enable", &cfg.visuals.items.bEnable);
                     ImGui::Checkbox("Draw name", &cfg.visuals.items.bName);
+                    ImGui::Checkbox("Draw shipwrecks", &cfg.visuals.items.bShipwrecks);
                     ImGui::ColorEdit4("Text color", &cfg.visuals.items.textCol.x, 0);
                 }
                 ImGui::EndChild();

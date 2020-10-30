@@ -103,37 +103,60 @@ struct FVector
 {
 	float X, Y, Z;
 
-    inline FVector() : X(0.f), Y(0.f), Z(0.f) {}
+	FORCEINLINE FVector() : X(0.f), Y(0.f), Z(0.f) {}
 
-    inline FVector(float x, float y, float z) : X(x), Y(y), Z(z) {}
+	FORCEINLINE FVector(float x, float y, float z) : X(x), Y(y), Z(z) {}
 
-	float Length(void) const { return sqrtf(X * X + Y * Y + Z * Z); }
+	FORCEINLINE float Size() const { return sqrtf(X * X + Y * Y + Z * Z); }
 
-	float DistTo(FVector v) const { return (*this - v).Length(); }
+	FORCEINLINE float Sum() const { return X + Y + Z; }
 
-    inline FVector operator + (const FVector& other) const { return FVector(X + other.X, Y + other.Y, Z + other.Z); }
+	FORCEINLINE float Size2D() const { return sqrtf(X * X + Y * Y); }
 
-    inline FVector operator - (const FVector& other) const { return FVector(X - other.X, Y - other.Y, Z - other.Z); }
+	FORCEINLINE float SizeSquared() const { return X * X + Y * Y + Z * Z; }
 
-    inline FVector operator * (float scalar) const { return FVector(X * scalar, Y * scalar, Z * scalar); }
+	FORCEINLINE float DistTo(const FVector& V) const { return (*this - V).Size(); }
 
-    inline FVector& operator=  (const FVector& other) { X  = other.X; Y  = other.Y; Z  = other.Z; return *this; }
+	FORCEINLINE FVector operator+(const FVector& other) const { return FVector(X + other.X, Y + other.Y, Z + other.Z); }
 
-    inline FVector& operator+= (const FVector& other) { X += other.X; Y += other.Y; Z += other.Z; return *this; }
+	FORCEINLINE FVector operator-(const FVector& other) const { return FVector(X - other.X, Y - other.Y, Z - other.Z); }
 
-    inline FVector& operator-= (const FVector& other) { X -= other.X; Y -= other.Y; Z -= other.Z; return *this; }
+	FORCEINLINE FVector operator*(const FVector& V) const { return FVector(X * V.X, Y * V.Y, Z * V.Z); }
 
-    inline FVector& operator*= (const float other)    { X *= other;   Y *= other;   Z *= other;   return *this; }
+	FORCEINLINE FVector operator/(const FVector& V) const { return FVector(X / V.X, Y / V.Y, Z / V.Z); }
 
-	friend bool operator==(const FVector& first, const FVector& second)
-	{
-		return first.X == second.X && first.Y == second.Y && first.Z == second.Z;
-	}
+	FORCEINLINE bool operator==(const FVector& V) const { return X == V.X && Y == V.Y && Z == V.Z; }
 
-	friend bool operator!=(const FVector& first, const FVector& second)
-	{
-		return !(first == second);
-	}
+	FORCEINLINE bool operator!=(const FVector& V) const { return X != V.X || Y != V.Y || Z != V.Z; }
+
+	FORCEINLINE FVector operator-() const { return FVector(-X, -Y, -Z); }
+
+	FORCEINLINE FVector operator+(float Bias) const { return FVector(X + Bias, Y + Bias, Z + Bias); }
+
+	FORCEINLINE FVector operator-(float Bias) const { return FVector(X - Bias, Y - Bias, Z - Bias); }
+
+	FORCEINLINE FVector operator*(float Scale) const { return FVector(X * Scale, Y * Scale, Z * Scale); }
+
+	FORCEINLINE FVector operator/(float Scale) const { const float RScale = 1.f / Scale; return FVector(X * RScale, Y * RScale, Z * RScale); }
+
+	FORCEINLINE FVector operator=(const FVector& V) { X = V.X; Y = V.Y; Z = V.Z; return *this; }
+
+	FORCEINLINE FVector operator+=(const FVector& V) { X += V.X; Y += V.Y; Z += V.Z; return *this; }
+
+	FORCEINLINE FVector operator-=(const FVector& V) { X -= V.X; Y -= V.Y; Z -= V.Z; return *this; }
+
+	FORCEINLINE FVector operator*=(const FVector& V){ X *= V.X; Y *= V.Y; Z *= V.Z; return *this; }
+
+	FORCEINLINE FVector operator/=(const FVector& V){ X /= V.X; Y /= V.Y; Z /= V.Z; return *this; }
+
+	FORCEINLINE FVector operator*=(float Scale) { X *= Scale; Y *= Scale; Z *= Scale; return *this; }
+
+	FORCEINLINE FVector operator/=(float V) { const float RV = 1.f / V; X *= RV; Y *= RV; Z *= RV; return *this; }
+
+
+	FORCEINLINE float FVector::operator|(const FVector& V) const { return X * V.X + Y * V.Y + Z * V.Z; }
+
+
 
 };
 
@@ -151,7 +174,7 @@ struct FVector2D
 		  Y(y)
 	{ }
 
-	inline float Length() {
+	inline float Size() {
 		return sqrtf(X * X + Y * Y);
 	}
 
@@ -248,7 +271,7 @@ struct FRotator
 
 	inline FRotator& operator*= (const float other) { Yaw *= other; Pitch *= other; Roll *= other; return *this; }
 
-	inline float Length() {
+	inline float Size() {
 		return sqrtf(Pitch * Pitch + Yaw * Yaw);
 	}
 

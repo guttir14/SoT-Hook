@@ -602,6 +602,16 @@ struct AAthenaGameState {
 	AIslandService* IslandService; // 0x0698
 };
 
+struct UCharacterMovementComponent {
+	FVector GetCurrentAcceleration() {
+		static auto fn = UObject::FindObject<UFunction>("Function Engine.CharacterMovementComponent.GetCurrentAcceleration");
+		FVector acceleration;
+		ProcessEvent(this, fn, &acceleration);
+		return acceleration;
+	}
+};
+
+
 class ACharacter : public UObject {
 public:
 	
@@ -611,12 +621,19 @@ public:
 	AController* Controller; // 0x0498
 	char pad3[0x28]; // 0x4A0
 	USkeletalMeshComponent* Mesh; // 0x04C8
-	char pad4[0x3C0]; // 0x4D0
+	UCharacterMovementComponent* CharacterMovement; // 0x04D0
+	char pad4[0x3B8]; // 0x4D8
 	UWieldedItemComponent* WieldedItemComponent; // 0x0890
 	char pad5[0x20]; // 0x0898
 	UHealthComponent* HealthComponent; // 0x08B8
 	char pad6[0x418]; // 0x8C0
 	UDrowningComponent* DrowningComponent; // 0x0CD8
+
+	void ReceiveTick(float DeltaSeconds)
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Engine.ActorComponent.ReceiveTick");
+		ProcessEvent(this, fn, &DeltaSeconds);
+	}
 
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.GetActorBounds");
@@ -731,6 +748,12 @@ public:
 	inline bool isItem() {
 		static auto obj = UObject::FindClass("Class Athena.ItemProxy");
 		return IsA(obj);
+	}
+
+	inline bool isShipwreck() {
+		static auto obj = UObject::FindClass("Class Athena.Shipwreck");
+		return IsA(obj);
+	
 	}
 
 	inline bool isShark() {

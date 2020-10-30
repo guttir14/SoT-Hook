@@ -76,6 +76,7 @@ private:
             struct {
                 bool bEnable = false;
                 bool bName = false;
+                bool bShipwrecks = false;
                 ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
             } items;
             struct {
