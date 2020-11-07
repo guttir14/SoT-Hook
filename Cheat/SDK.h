@@ -45,7 +45,7 @@ struct FName
 	FName() {}
 
 	FName(const char* find) {
-		for (auto i = 6000; i < GNames->NumElements; i++)
+		for (auto i = 6000u; i < GNames->NumElements; i++)
 		{
 			auto name = GetNameByIdFast(i);
 			if (!name) continue;
@@ -570,16 +570,7 @@ struct APuzzleVault {
 	
 	char pad[0x1080];
 	ASlidingDoor* OuterDoor; // 0x1080
-
-	void OpenVaultDoor() {
-		static auto fn = UObject::FindObject<UFunction>("Function Athena.PuzzleVault.OpenVaultDoor");
-		ProcessEvent(this, fn, nullptr);
-	}
-
-	void ActivateVault() {
-		static auto fn = UObject::FindObject<UFunction>("Function Athena.PuzzleVault.ActivateVault");
-		ProcessEvent(this, fn, nullptr);
-	}
+	
 };
 
 struct AWorldSettings {
@@ -608,6 +599,24 @@ struct UCharacterMovementComponent {
 		FVector acceleration;
 		ProcessEvent(this, fn, &acceleration);
 		return acceleration;
+	}
+};
+
+
+struct AHarpoonLauncher {
+	char pad[0x0B90];
+	FRotator rotation;
+
+	void Server_RequestAim(float InPitch, float InYaw)
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.HarpoonLauncher.Server_RequestAim");
+		struct {
+			float InPitch;
+			float InYaw;
+		} params;
+		params.InPitch = InPitch;
+		params.InYaw = InYaw;
+		ProcessEvent(this, fn, &params);
 	}
 };
 
@@ -664,7 +673,7 @@ public:
 		ACharacter* ReturnValue;
 		ProcessEvent(this, fn, &ReturnValue);
 		return ReturnValue;
-	}
+	};
 
 	ACharacter* GetWieldedItem() {
 		if (!WieldedItemComponent) return nullptr;
@@ -708,6 +717,7 @@ public:
 		return isInWater;
 	}
 
+	
 	FRotator K2_GetActorRotation() {
 		static auto fn = UObject::FindObject<UFunction>("Function Engine.Actor.K2_GetActorRotation");
 		FRotator params;
@@ -737,6 +747,11 @@ public:
 	}
 	inline bool isShip() {
 		static auto obj = UObject::FindClass("Class Athena.Ship");
+		return IsA(obj);
+	}
+
+	inline bool isHarpoon() {
+		static auto obj = UObject::FindClass("Class Athena.HarpoonLauncher");
 		return IsA(obj);
 	}
 

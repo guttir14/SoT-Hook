@@ -3,6 +3,23 @@ Sea of Thieves internal cheat
 
 Aimbot - https://youtu.be/V2l0r7j5FBk
 
+### Features:
+- ESP:
+    - Players
+    - Skeletons
+    - Ships
+    - Islands
+    - Items
+    - Animals
+    - Sharks
+    - Compass
+    - Oxygen
+    - Crosshair
+- Aim:
+    - Players
+    - Skeletons
+    - Harpoon
+    
 
 ### Dependences:
 - https://github.com/HoShiMin/HookLib

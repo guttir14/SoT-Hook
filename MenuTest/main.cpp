@@ -234,7 +234,6 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				struct {
 					bool bEnable = false;
 					bool bName = false;
-					bool bShipwrecks = false;
 					ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
 				} items;
 				struct {
@@ -428,7 +427,6 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					{
 						ImGui::Checkbox("Enable", &cfg.visuals.items.bEnable);
 						ImGui::Checkbox("Draw name", &cfg.visuals.items.bName);
-						ImGui::Checkbox("Draw shipwrecks", &cfg.visuals.items.bShipwrecks);
 						ImGui::ColorEdit4("Text color", &cfg.visuals.items.textCol.x, 0);
 					}
 					ImGui::EndChild();

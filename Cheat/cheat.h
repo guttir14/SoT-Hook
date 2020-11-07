@@ -76,7 +76,6 @@ private:
             struct {
                 bool bEnable = false;
                 bool bName = false;
-                bool bShipwrecks = false;
                 ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
             } items;
             struct {
@@ -103,6 +102,11 @@ private:
                 ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
             } puzzles;
             struct {
+                bool bEnable = false;
+                bool bName = false;
+                ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+            } shipwrecks;
+            struct {
                 bool bCrosshair = false;
                 bool bOxygen = false;
                 bool bCompass = false;
@@ -118,26 +122,31 @@ private:
                 bool bEnable = false;
                 bool bVisibleOnly = false;
                 bool bTeam = false;
-                float fYaw = 20.f;
-                float fPitch = 20.f;
+                float fYaw = 5.f;
+                float fPitch = 5.f;
                 float fSmoothness = 5.f;
             } players;
             struct {
                 bool bEnable = false;
                 bool bVisibleOnly = false;
-                float fYaw = 20.f;
-                float fPitch = 20.f;
+                float fYaw = 5.f;
+                float fPitch = 5.f;
                 float fSmoothness = 5.f;
             } skeletons;
+            struct {
+                bool bEnable = false;
+                bool bVisibleOnly = false;
+                bool bAutoshoot = false;
+                float fYaw = 100.f;
+                float fPitch = 102.f;
+            } harpoon;
         } aim;
 
         struct {
             bool bEnable = false;
             struct {
                 bool bEnable = false;
-                bool bInfiniteAmmo = false;
                 bool bIdleKick = false;
-                float fGameSpeed = 1.f;
             } client;
         } misc;
     } cfg;
@@ -162,6 +171,7 @@ private:
 		static inline HRESULT(*ResizeOriginal)(IDXGISwapChain* swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) = nullptr;
 		static inline decltype(SetCursorPos)* SetCursorPosOriginal = nullptr;
         static inline decltype(SetCursor)* SetCursorOriginal = nullptr;
+        static inline bool bad = false;
 		static inline ID3D11Device* device = nullptr;
 		static inline ID3D11DeviceContext* context = nullptr;
 		static inline ID3D11RenderTargetView* renderTargetView = nullptr;
