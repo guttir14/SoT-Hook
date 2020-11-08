@@ -81,7 +81,7 @@ bool Cheat::Renderer::Drawing::Render3DBox(AController* const controller, const 
     vertex[1][1] = { origin.X + extent.X, origin.Y - extent.Y, origin.Z + extent.Z };
     vertex[1][2] = { origin.X + extent.X, origin.Y + extent.Y, origin.Z + extent.Z };
     vertex[1][3] = { origin.X - extent.X, origin.Y + extent.Y, origin.Z + extent.Z };
-
+    // todo: use both angles, not only one
     float theta = (int(rotation.Yaw + 450.f) % 360) * 0.0174533f;
     FVector2D screen[2][4];
     for (auto k = 0; k < 2; k++)
