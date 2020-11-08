@@ -1,11 +1,42 @@
 #pragma once
 #include <Windows.h>
-#include "CoreStruct.hpp"
+#include <UE4/UE4.h>
 #include <string>
 
 #ifdef _MSC_VER
 #pragma pack(push, 0x8)
 #endif
+
+struct FNameEntry
+{
+	uint32_t Index;
+	uint32_t pad;
+	FNameEntry* HashNext;
+	char AnsiName[1024];
+
+	const int GetIndex() const { return Index >> 1; }
+	const char* GetAnsiName() const { return AnsiName; }
+};
+
+class TNameEntryArray
+{
+public:
+
+	bool IsValidIndex(uint32_t index) const { return index < NumElements; }
+
+	FNameEntry const* GetById(uint32_t index) const { return *GetItemPtr(index); }
+
+	FNameEntry const* const* GetItemPtr(uint32_t Index) const {
+		const auto ChunkIndex = Index / 16384;
+		const auto WithinChunkIndex = Index % 16384;
+		const auto Chunk = Chunks[ChunkIndex];
+		return Chunk + WithinChunkIndex;
+	}
+
+	FNameEntry** Chunks[128];
+	uint32_t NumElements = 0;
+	uint32_t NumChunks = 0;
+};
 
 struct FName
 {
@@ -72,15 +103,10 @@ struct TUObjectArray
 	int MaxElements;
 	int NumElements;
 
-	inline class UObject* GetByIndex(int index)
-	{
-		return Objects[index].Object;
-	}
+    class UObject* GetByIndex(int index) { return Objects[index].Object; }
 };
 
 class UClass;
-
-
 class UObject
 {
 public:
@@ -125,7 +151,7 @@ public:
 	}
 
 	template<typename T>
-	static T* GetObjectCasted(std::size_t index)
+	static T* GetObjectCasted(uint32_t index)
 	{
 		return static_cast<T*>(GObjects->GetByIndex(index));
 	}

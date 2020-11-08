@@ -72,13 +72,13 @@
     <ClCompile Include="..\include\imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\include\UE4\UE4.cpp" />
     <ClCompile Include="cheat.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SDK.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cheat.h" />
-    <ClInclude Include="CoreStruct.hpp" />
     <ClInclude Include="SDK.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

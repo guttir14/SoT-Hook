@@ -18,6 +18,10 @@ private:
             E3DBoxes,
             EDebugBoxes
         };
+        enum class EShipBox {
+            ENone,
+            E3DBoxes
+        };
         enum class EBar : int {
             ENone,
             ELeft,
@@ -59,13 +63,16 @@ private:
 
             } skeletons;
             struct {
+                
                 bool bEnable = false;
                 bool bSkeleton = false;
                 bool bHealth = false;
                 bool bName = false;
                 bool bDamage = false;
+                EShipBox boxType = EShipBox::ENone;
                 ImVec4 damageColor = { 1.f, 1.f, 1.f, 1.f };
                 ImVec4 textCol = { 1.f, 1.f, 1.f, 1.f };
+                ImVec4 boxColor = { 1.f, 0.f, 1.f, 1.f };
             } ships;
             struct {
                 bool bEnable = false;

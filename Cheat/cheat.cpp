@@ -72,27 +72,25 @@ void Cheat::Renderer::Drawing::Render2DBox(const FVector2D& top, const FVector2D
 bool Cheat::Renderer::Drawing::Render3DBox(AController* const controller, const FVector& origin, const FVector& extent, const FRotator& rotation, const ImVec4& color)
 {
     FVector vertex[2][4];
-    vertex[0][0] = { origin.X - extent.X, origin.Y - extent.Y, origin.Z - extent.Z };
-    vertex[0][1] = { origin.X + extent.X, origin.Y - extent.Y, origin.Z - extent.Z };
-    vertex[0][2] = { origin.X + extent.X, origin.Y + extent.Y, origin.Z - extent.Z };
-    vertex[0][3] = { origin.X - extent.X, origin.Y + extent.Y, origin.Z - extent.Z };
+    vertex[0][0] = { -extent.X, -extent.Y,  -extent.Z };
+    vertex[0][1] = { extent.X, -extent.Y,  -extent.Z };
+    vertex[0][2] = { extent.X, extent.Y,  -extent.Z };
+    vertex[0][3] = { - extent.X, extent.Y, -extent.Z };
 
-    vertex[1][0] = { origin.X - extent.X, origin.Y - extent.Y, origin.Z + extent.Z };
-    vertex[1][1] = { origin.X + extent.X, origin.Y - extent.Y, origin.Z + extent.Z };
-    vertex[1][2] = { origin.X + extent.X, origin.Y + extent.Y, origin.Z + extent.Z };
-    vertex[1][3] = { origin.X - extent.X, origin.Y + extent.Y, origin.Z + extent.Z };
-    // todo: use both angles, not only one
-    float theta = (int(rotation.Yaw + 450.f) % 360) * 0.0174533f;
+    vertex[1][0] = { -extent.X, -extent.Y, extent.Z };
+    vertex[1][1] = { extent.X, -extent.Y, extent.Z };
+    vertex[1][2] = { extent.X, extent.Y, extent.Z };
+    vertex[1][3] = { -extent.X, extent.Y, extent.Z };
+
     FVector2D screen[2][4];
+    FTransform const Transform(rotation);
     for (auto k = 0; k < 2; k++)
     {
         for (auto i = 0; i < 4; i++)
         {
             auto& vec = vertex[k][i];
-            float x = vec.X - origin.X;
-            float y = vec.Y - origin.Y;
-            vertex[k][i] = { origin.X + (x * cos(theta) - y * sin(theta)), origin.Y + (x * sin(theta) + y * cos(theta)), vec.Z };
-            if (!controller->ProjectWorldLocationToScreen(vertex[k][i], screen[k][i])) return false;
+            vec = Transform.TransformPosition(vec) + origin;
+            if (!controller->ProjectWorldLocationToScreen(vec, screen[k][i])) return false;
         }
 
     }
@@ -349,35 +347,37 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     if (cfg.aim.bEnable)
                     {
                         
-                        if (isHarpoon && actor->isItem())
+                        if (isHarpoon)
                         {
-                            do {
+                            if (actor->isItem())
+                            {
+                                do {
                                 
-                                FVector location = actor->K2_GetActorLocation();
-                                float dist = cameraLoc.DistTo(location);
-                                if (dist > 7500.f || dist < 260.f) { break; }
-                                if (cfg.aim.harpoon.bVisibleOnly) if (!localController->LineOfSightTo(actor, cameraLoc, false)) { break; }
-                                auto harpoon = reinterpret_cast<AHarpoonLauncher*>(attachObject);
-                                auto center = UKismetMathLibrary::NormalizedDeltaRotator(cameraRot, harpoon->rotation);
-                                FRotator delta = UKismetMathLibrary::NormalizedDeltaRotator(UKismetMathLibrary::FindLookAtRotation(cameraLoc, location), center);
-                                if (delta.Pitch < -35.f || delta.Pitch > 67.f || abs(delta.Yaw) > 50.f) { break; }
-                                FRotator diff = delta - harpoon->rotation;
-                                float absPitch = abs(diff.Pitch);
-                                float absYaw = abs(diff.Yaw);
-                                if (absPitch > cfg.aim.harpoon.fPitch || absYaw > cfg.aim.harpoon.fYaw) { break; }
-                                float sum = absYaw + absPitch;
-                                if (sum < aimBest.best)
-                                {
-                                    aimBest.target = actor;
-                                    aimBest.location = location;
-                                    aimBest.delta = delta;
-                                    aimBest.best = sum;
-                                }
+                                    FVector location = actor->K2_GetActorLocation();
+                                    float dist = cameraLoc.DistTo(location);
+                                    if (dist > 7500.f || dist < 260.f) { break; }
+                                    if (cfg.aim.harpoon.bVisibleOnly) if (!localController->LineOfSightTo(actor, cameraLoc, false)) { break; }
+                                    auto harpoon = reinterpret_cast<AHarpoonLauncher*>(attachObject);
+                                    auto center = UKismetMathLibrary::NormalizedDeltaRotator(cameraRot, harpoon->rotation);
+                                    FRotator delta = UKismetMathLibrary::NormalizedDeltaRotator(UKismetMathLibrary::FindLookAtRotation(cameraLoc, location), center);
+                                    if (delta.Pitch < -35.f || delta.Pitch > 67.f || abs(delta.Yaw) > 50.f) { break; }
+                                    FRotator diff = delta - harpoon->rotation;
+                                    float absPitch = abs(diff.Pitch);
+                                    float absYaw = abs(diff.Yaw);
+                                    if (absPitch > cfg.aim.harpoon.fPitch || absYaw > cfg.aim.harpoon.fYaw) { break; }
+                                    float sum = absYaw + absPitch;
+                                    if (sum < aimBest.best)
+                                    {
+                                        aimBest.target = actor;
+                                        aimBest.location = location;
+                                        aimBest.delta = delta;
+                                        aimBest.best = sum;
+                                    }
 
-                            } while (false);
-
+                                } while (false);
+                            }
                         }
-                        else if (isWieldedWeapon)
+                        else if (!attachObject && isWieldedWeapon)
                         {
                             if (cfg.aim.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
                             {
@@ -501,7 +501,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                 continue;
                             }
 
-                            else if (cfg.visuals.players.bEnable && actor->isPlayer() && actor != localCharacter && !actor->IsDead())
+                            else if (cfg.visuals.players.bEnable && actor->isPlayer()  && actor != localCharacter && !actor->IsDead())
                             {
 
                                 const bool teammate = UCrewFunctions::AreCharactersInSameCrew(actor, localCharacter);
@@ -540,12 +540,14 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     if (!Drawing::Render3DBox(localController, location, ext, rotation, col)) continue;
                                     break;
                                 }
+                                /*
                                 case Config::EBox::EDebugBoxes: 
                                 {
                                     FVector ext = { 35.f, 35.f, extent.Z };
                                     UKismetMathLibrary::DrawDebugBox(actor, location, ext, *reinterpret_cast<FLinearColor*>(&col), actor->K2_GetActorRotation(), 0.0f);
                                     break;
                                 }
+                                */
                                 }
 
 
@@ -699,11 +701,13 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     if (!Drawing::Render3DBox(localController, origin, extent, rotation, col)) continue;
                                     break;
                                 }
+                                /*
                                 case Config::EBox::EDebugBoxes:
                                 {
                                     UKismetMathLibrary::DrawDebugBox(actor, origin, extent, *reinterpret_cast<const FLinearColor*>(&col), actor->K2_GetActorRotation(), 0.0f);
                                     break;
                                 }
+                                */
                                 }
 
                                 if (cfg.visuals.skeletons.bName)
@@ -790,12 +794,14 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     if (!Drawing::Render3DBox(localController, origin, ext, rotation, col)) continue;
                                     break;
                                 }
+                                /*
                                 case Config::EBox::EDebugBoxes:
                                 {
                                     FVector ext = { 40.f, 40.f, extent.Z };
                                     UKismetMathLibrary::DrawDebugBox(actor, origin, ext, *reinterpret_cast<const FLinearColor*>(&col), actor->K2_GetActorRotation(), 0.0f);
                                     break;
                                 }
+                                 */
                                 }
 
                                 if (cfg.visuals.animals.bName)
@@ -913,6 +919,28 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                                 drawList->AddLine({ screen.X - 6.f, screen.Y - 6.f }, { screen.X + 6.f, screen.Y + 6.f }, ImGui::GetColorU32(color));
                                             }
                                         }
+                                    }
+
+                                    switch (cfg.visuals.ships.boxType)
+                                    {
+                                    case Config::EShipBox::E3DBoxes:
+                                    {
+                                        
+                                        FVector origin, extent;
+                                        actor->GetActorBounds(true, origin, extent);
+                                        FRotator rotation = actor->K2_GetActorRotation();
+                                        if (!Drawing::Render3DBox(localController, origin, extent, rotation, cfg.visuals.ships.boxColor)) continue;
+                                        break;
+                                    }
+                                    /*
+                                    case Config::EBox::EDebugBoxes:
+                                    {
+                                        FVector origin, extent;
+                                        actor->GetActorBounds(true, origin, extent);
+                                        UKismetMathLibrary::DrawDebugBox(reinterpret_cast<UObject*>(world), origin, extent, *reinterpret_cast<const FLinearColor*>(&cfg.visuals.ships.boxColor), actor->K2_GetActorRotation(), 0.f);
+                                        break;
+                                    }
+                                    */
                                     }
 
                                     continue;
@@ -1147,7 +1175,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
 
                 ImGui::Columns(2, "CLM1", false);
-                const char* boxes[] = { "None", "2DBox", "3DBox", "DebugBox" };
+                const char* boxes[] = { "None", "2DBox", "3DBox" };
                 const char* bars[] = { "None", "2DRectLeft", "2DRectRight", "2DRectBottom", "2DRectTop" };
                 ImGui::Text("Players");
                 if (ImGui::BeginChild("PlayersSettings", ImVec2(0.f, 310.f), true, 0))
@@ -1186,21 +1214,23 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 ImGui::Columns(2, "CLM2", false);
 
                 ImGui::Text("Ships");
-                if (ImGui::BeginChild("ShipsSettings", ImVec2(0.f, 150.f), true, 0)) {
+                if (ImGui::BeginChild("ShipsSettings", ImVec2(0.f, 200.f), true, 0)) {
 
+                    const char* shipBoxes[] = {"None", "3DBox"};
                     ImGui::Checkbox("Enable", &cfg.visuals.ships.bEnable);
                     ImGui::Checkbox("Draw name", &cfg.visuals.ships.bName);
                     ImGui::Checkbox("Show holes", &cfg.visuals.ships.bDamage);
+                    ImGui::Combo("Box type", reinterpret_cast<int*>(&cfg.visuals.ships.boxType), shipBoxes, IM_ARRAYSIZE(shipBoxes));
+                    ImGui::ColorEdit4("Box color", &cfg.visuals.ships.boxColor.x, 0);
                     ImGui::ColorEdit4("Damage color", &cfg.visuals.ships.damageColor.x, 0);
                     ImGui::ColorEdit4("Text color", &cfg.visuals.ships.textCol.x, 0);
-
                 }
                 ImGui::EndChild();
 
                 ImGui::NextColumn();
 
                 ImGui::Text("Islands");
-                if (ImGui::BeginChild("IslandsSettings", ImVec2(0.f, 150.f), true, 0)) {
+                if (ImGui::BeginChild("IslandsSettings", ImVec2(0.f, 200.f), true, 0)) {
                     ImGui::Checkbox("Enable", &cfg.visuals.islands.bEnable);
                     ImGui::Checkbox("Draw names", &cfg.visuals.islands.bName);
                     ImGui::SliderInt("Max distance", &cfg.visuals.islands.intMaxDist, 100, 10000, "%d", ImGuiSliderFlags_AlwaysClamp);

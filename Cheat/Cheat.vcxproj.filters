@@ -12,6 +12,9 @@
     <Filter Include="Sources\imgui">
       <UniqueIdentifier>{62ab2a41-7b9f-4251-a700-e9046c271417}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\UE4">
+      <UniqueIdentifier>{c4e68b8f-1b5f-416e-91f7-e978152b36f6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,15 +41,15 @@
     <ClCompile Include="SDK.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\include\UE4\UE4.cpp">
+      <Filter>Sources\UE4</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cheat.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="SDK.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreStruct.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
