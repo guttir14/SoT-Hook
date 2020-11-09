@@ -1557,8 +1557,11 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         krakenService = cache.gameState->KrakenService; 
                         localCharacter = cache.localController->Character;
                     }
-                    
-                    ImGui::Text("IsKrakenActive: %d", krakenService->IsKrakenActive());
+                    bool isActive = false;
+                    krakenService->IsKrakenActive();
+                    if (krakenService) { krakenService->IsKrakenActive(); }
+                    ImGui::Text("IsKrakenActive: %d", isActive);
+
                     /*
                     if (ImGui::Button("Attempt to request kraken"))
                     {
