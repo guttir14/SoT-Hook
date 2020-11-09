@@ -281,9 +281,59 @@ public:
 };
 
 
+enum class EPlayerActivityType : uint8_t
+{
+	None = 0,
+	Bailing = 1,
+	Cannon = 2,
+	Cannon_END = 3,
+	Capstan = 4,
+	Capstan_END = 5,
+	CarryingBooty = 6,
+	CarryingBooty_END = 7,
+	Dead = 8,
+	Dead_END = 9,
+	Digging = 10,
+	Dousing = 11,
+	EmptyingBucket = 12,
+	Harpoon = 13,
+	Harpoon_END = 14,
+	LoseHealth = 15,
+	Repairing = 16,
+	Sails = 17,
+	Sails_END = 18,
+	Wheel = 19,
+	Wheel_END = 20
+};
+
+struct FPirateDescription
+{
+	
+};
+
 struct APlayerState {
 	char pad[0x468]; // 0x0
 	FString PlayerName; // 0x468
+	char pad_0x470[0x128]; // 0x478;
+	FString Sandbox; // 0x05A0
+	FString ClientPlatform; // 0x05B0
+
+	EPlayerActivityType GetPlayerActivity()
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.AthenaPlayerState.GetPlayerActivity");
+		EPlayerActivityType activity;
+		ProcessEvent(this, fn, &activity);
+		return activity;
+	}
+
+	FPirateDescription GetPirateDesc()
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.AthenaPlayerState.GetPirateDesc");
+		FPirateDescription desc;
+		ProcessEvent(this, fn, &desc);
+		return desc;
+	}
+	
 };
 
 struct FMinimalViewInfo {
@@ -593,10 +643,8 @@ struct USceneComponent {
 };
 
 struct APuzzleVault {
-	
 	char pad[0x1080];
 	ASlidingDoor* OuterDoor; // 0x1080
-	
 };
 
 struct AWorldSettings {
@@ -604,19 +652,86 @@ struct AWorldSettings {
 	float TimeDilation; // 0x05C0
 };
 
+struct FCrew
+{
+	char pad[0x20];
+	TArray<APlayerState*> Players;                                                  // 0x0020(0x0010) (ZeroConstructor)
+	char pad2[0x50];
+};
+
+struct ACrewService {
+	char pad[0x0628];
+	TArray<FCrew> Crews; // 0x0628
+};
+
+struct AShipService
+{
+	int GetNumShips()
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Athena.ShipService.GetNumShips");
+		int num;
+		ProcessEvent(this, fn, &num);
+		return num;
+	}
+};
+
+struct AKrakenService
+{
+	char pad[0x05A8];
+	class AKraken* Kraken; // 0x05A8(0x0008)
+	bool IsKrakenActive() {
+		static auto fn = UObject::FindObject<UFunction>("Function Kraken.KrakenService.IsKrakenActive");
+		bool isActive;
+		ProcessEvent(this, fn, &isActive);
+		return isActive;
+	}
+
+	void RequestKrakenWithLocation(const FVector& SpawnLocation, ACharacter* SpawnedForActor) {
+		static auto fn = UObject::FindObject<UFunction>("Function Kraken.KrakenService.RequestKrakenWithLocation");
+		struct {
+			FVector SpawnLocation;
+			ACharacter* SpawnedForActor = nullptr;
+		} params;
+		params = { SpawnLocation, SpawnedForActor };
+		ProcessEvent(this, fn, &params);
+	}
+
+	void DismissKraken()
+	{
+		static auto fn = UObject::FindObject<UFunction>("Function Kraken.KrakenService.DismissKraken");
+		ProcessEvent(this, fn, nullptr);
+	}
+};
+
 struct AAthenaGameState {
 	char pad[0x0648];
 	UINT64* WindService;
 	UINT64* PlayerManagerService;
-	UINT64* ShipService;
+	AShipService* ShipService;
 	UINT64* WatercraftService;
 	UINT64* TimeService;
 	UINT64* WaterService;
 	UINT64* StormService;
-	UINT64* CrewService;
+	ACrewService* CrewService; // 0x0680
 	UINT64* ContestZoneService;
 	UINT64* ContestRowboatsService;
 	AIslandService* IslandService; // 0x0698
+	class ANPCService* NPCService; // 0x06A0(0x0008) (Net, ZeroConstructor, IsPlainOldData, RepNotify, NoDestructor, HasGetValueTypeHash)
+	class ASkellyFortService* SkellyFortService; // 0x06A8(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AAIDioramaService* AIDioramaService; // 0x06B0(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AAshenLordEncounterService* AshenLordEncounterService; // 0x06B8(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AAggressiveGhostShipsEncounterService* AggressiveGhostShipsEncounterService;                     // 0x06C0(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class ATallTaleService* TallTaleService; // 0x06C8(0x0008) (Net, ZeroConstructor, IsPlainOldData, RepNotify, NoDestructor, HasGetValueTypeHash)
+	class AAIShipObstacleService* AIShipObstacleService; // 0x06D0(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AAIShipService* AIShipService; // 0x06D8(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AAITargetService* AITargetService; // 0x06E0(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class UShipLiveryCatalogueService* ShipLiveryCatalogueService; // 0x06E8(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class AContestManagerService* ContestManagerService; // 0x06F0(0x0008) (Net, ZeroConstructor, IsPlainOldData, RepNotify, NoDestructor, HasGetValueTypeHash)
+	class ADrawDebugService* DrawDebugService; // 0x06F8(0x0008) (Net, ZeroConstructor, IsPlainOldData, RepNotify, NoDestructor, HasGetValueTypeHash)
+	class AWorldEventZoneService* WorldEventZoneService; // 0x0700(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	class UWorldResourceRegistry* WorldResourceRegistry; // 0x0708(0x0008) (ZeroConstructor, IsPlainOldData, NoDestructor, HasGetValueTypeHash)
+	AKrakenService* KrakenService; // 0x0710(0x0
+
 };
 
 struct UCharacterMovementComponent {

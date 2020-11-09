@@ -10,6 +10,8 @@ private:
     static inline struct Cache{
         AController* localController;
         APlayerCameraManager* localCamera;
+        AAthenaGameState* gameState;
+        bool good;
     } cache;
     static inline struct Config {
         enum class EBox : int {
@@ -155,6 +157,14 @@ private:
                 bool bEnable = false;
                 bool bIdleKick = false;
             } client;
+            struct {
+                bool bEnable = false;
+                bool bShowPlayers = false;
+            } game;
+            struct {
+                bool bEnable = false;
+                bool bShowKrakenState = false;
+            } kraken;
         } misc;
     } cfg;
     class Hacks {

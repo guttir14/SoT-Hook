@@ -30,6 +30,8 @@ void Cheat::Hacks::OnWeaponFiredHook(UINT64 arg1, UINT64 arg2)
     return OnWeaponFiredOriginal(arg1, arg2);
 }
 
+
+
 void Cheat::Hacks::Init()
 {
     /*UFunction* fn = UObject::FindObject<UFunction>("Function Athena.ProjectileWeapon.OnWeaponFired");
@@ -43,7 +45,7 @@ void Cheat::Hacks::Init()
 
 inline void Cheat::Hacks::Remove()
 {
-    //RemoveHook(OnWeaponFiredOriginal);
+    //RemoveHook(orig);
 }
 
 void Cheat::Renderer::Drawing::RenderText(const char* text, const FVector2D& pos, const ImVec4& color, const bool outlined = true, const bool centered = true)
@@ -288,6 +290,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             auto const game = world->GameInstance;
             if (!game) break;
             auto const gameState = world->GameState;
+            cache.gameState = gameState;
             if (!gameState) break;
             if (!game->LocalPlayers.Data) break;
             auto const localPlayer = game->LocalPlayers[0];
@@ -319,6 +322,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
            {
                if (cfg.aim.harpoon.bEnable && attachObject->isHarpoon()) { isHarpoon = true; }
            }
+
+           cache.good = true;
 
             static struct {
                 ACharacter* target = nullptr;
@@ -1135,6 +1140,72 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                         localController->IdleDisconnectEnabled = false;
                     }
                 }
+                if (cfg.misc.game.bEnable)
+                {
+                    if (cfg.misc.game.bShowPlayers) 
+                    {
+                        ImGui::PopStyleColor();
+                        ImGui::PopStyleVar(2);
+                        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.25f, io.DisplaySize.y * 0.25f), ImGuiCond_Once);
+                        ImGui::Begin("PlayersList", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+                        
+                        auto shipsService = gameState->ShipService;
+                        if (shipsService)
+                        {
+                            ImGui::BeginChild("Info", { 0.f, 15.f });
+                            ImGui::Text("Total ships (including AI): %d", shipsService->GetNumShips());
+                            ImGui::EndChild();
+                        }
+                        
+                        auto crewService = gameState->CrewService;
+                        auto crews = crewService->Crews;
+                        if (crews.Data)
+                        {
+                            ImGui::Columns(2, "CrewPlayers");
+                            ImGui::Separator();
+                            ImGui::Text("Name"); ImGui::NextColumn();
+                            ImGui::Text("Activity"); ImGui::NextColumn();
+                            ImGui::Separator();
+                            for (auto i = 0; i < crews.Count; i++)
+                            {
+                                auto& const crew = crews[i];
+                                auto players = crew.Players;
+                                if (players.Data)
+                                {
+                                    for (auto k = 0; k < players.Count; k++)
+                                    {
+                                        auto& const player = players[k];
+                                        char buf[0x64];
+                                        player->PlayerName.multi(buf, 0x50);
+                                        ImGui::Selectable(buf);
+                                        if (ImGui::BeginPopupContextItem(buf))
+                                        {
+                                            ImGui::Button("gay");
+                                            ImGui::EndPopup();
+                                        }
+                                        ImGui::NextColumn();
+                                        const char* actions[] = { "None", "Bailing", "Cannon", "CannonEnd", "Capstan", "CapstanEnd", "CarryingBooty", "CarryingBootyEnd", "Dead", "DeadEnd", "Digging", "Dousing", "EmptyingBucket", "Harpoon", "Harpoon_END", "LoseHealth", "Repairing", "Sails", "Sails_END", "Wheel", "Wheel_END" };
+                                        auto activity = (uint8_t)player->GetPlayerActivity();
+                                        if (activity < 21) { ImGui::Text(actions[activity]); }
+                                      
+                                        ImGui::NextColumn();
+                                    }
+                                    ImGui::Separator();
+                                }
+
+                                
+                                
+                                
+                            }
+                            ImGui::Columns();
+                        }
+                        ImGui::End();
+                        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+                        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+                        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+                    }
+                    
+                }
             }
 
             
@@ -1209,9 +1280,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 }
                 ImGui::EndChild();
-                ImGui::Columns();
 
-                ImGui::Columns(2, "CLM2", false);
+                ImGui::NextColumn();
 
                 ImGui::Text("Ships");
                 if (ImGui::BeginChild("ShipsSettings", ImVec2(0.f, 200.f), true, 0)) {
@@ -1237,11 +1307,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::ColorEdit4("Text color", &cfg.visuals.islands.textCol.x, 0);
                 }
                 ImGui::EndChild();
-                ImGui::Columns();
 
+                ImGui::NextColumn();
 
-
-                ImGui::Columns(2, "CLM3", false);
                 ImGui::Text("Items");
                 if (ImGui::BeginChild("ItemsSettings", ImVec2(0.f, 220.f), true, 0))
                 {
@@ -1265,9 +1333,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 }
 
                 ImGui::EndChild();
-                ImGui::Columns();
 
-                ImGui::Columns(2, "CLM4", false);
+                ImGui::NextColumn();
+
                 ImGui::Text("Sharks");
                 if (ImGui::BeginChild("SharksSettings", ImVec2(0.f, 220.f), true, 0)) 
                 {
@@ -1293,9 +1361,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 }
                 ImGui::EndChild();
-                ImGui::Columns();
 
-                ImGui::Columns(2, "CLM5", false);
+                ImGui::NextColumn();
 
                 ImGui::Text("Shipwrecks");
                 if (ImGui::BeginChild("ShipwrecksSettings", ImVec2(0.f, 220.f), true, 0))
@@ -1378,9 +1445,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 }
                 ImGui::EndChild();
-                ImGui::Columns();
 
-                ImGui::Columns(2, "CLM2", false);
+                ImGui::NextColumn();
+
                 ImGui::Text("Harpoon");
                 if (ImGui::BeginChild("HarpoonSettings", ImVec2(0.f, 180.f), true, 0))
                 {
@@ -1390,6 +1457,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::SliderFloat("Pitch", &cfg.aim.harpoon.fPitch, 1.f, 102.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
                 }
                 ImGui::EndChild();
+
                 ImGui::Columns();
 
 
@@ -1407,7 +1475,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 ImGui::Columns(2, "CLM1", false);
                 ImGui::Text("Client");
-                if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 365.f), true, 0))
+                if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 180.f), true, 0))
                 {
                     ImGui::Checkbox("Enable", &cfg.misc.client.bEnable);
                     ImGui::Checkbox("Disable idle kick", &cfg.misc.client.bIdleKick);
@@ -1465,6 +1533,44 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 }
                 ImGui::EndChild();
 
+                ImGui::NextColumn();
+
+                ImGui::Text("Game");
+                if (ImGui::BeginChild("GameSettings", ImVec2(0.f, 180.f), true, 0))
+                {
+                    ImGui::Checkbox("Enable", &cfg.misc.game.bEnable);
+                    ImGui::Checkbox("Show players list", &cfg.misc.game.bShowPlayers);
+                }
+                ImGui::EndChild();
+
+                ImGui::NextColumn();
+
+
+                ImGui::Text("Kraken");
+                if (ImGui::BeginChild("KrakenSettings", ImVec2(0.f, 180.f), true, 0))
+                {
+                    
+
+                    AKrakenService* krakenService;
+                    ACharacter* localCharacter;
+                    if (cache.good)  { 
+                        krakenService = cache.gameState->KrakenService; 
+                        localCharacter = cache.localController->Character;
+                    }
+                    
+                    ImGui::Text("IsKrakenActive: %d", krakenService->IsKrakenActive());
+                    /*
+                    if (ImGui::Button("Attempt to request kraken"))
+                    {
+                        if (krakenService) { krakenService->RequestKrakenWithLocation(localCharacter->K2_GetActorLocation(), localCharacter); }
+                    }
+                    if (ImGui::Button("Dismiss kraken"))
+                    {
+                        if (krakenService) { krakenService->DismissKraken(); }
+                    }
+                    */
+                }
+                ImGui::EndChild();
 
                 ImGui::Columns();
 
@@ -1661,6 +1767,7 @@ inline bool Cheat::Tools::FindNameArray()
     static BYTE sig[] = { 0x48, 0x8b, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x85, 0xff, 0x75, 0x3c };
     auto address = reinterpret_cast<decltype(FName::GNames)*>(FindPointer(sig, sizeof(sig)));
     if (!address) return 0;
+    Logger::Log("%p\n", address);
     FName::GNames = *address;
     return FName::GNames;
 }
@@ -1766,7 +1873,7 @@ bool Cheat::Init(HINSTANCE _hinstDLL)
         Logger::Log("Can't initialize renderer\n");
         return false;
     }
-    //Hacks::Init();
+    Hacks::Init();
 
 #ifdef STEAM
     auto t = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(ClearingThread), nullptr, 0, nullptr);
@@ -1804,6 +1911,8 @@ bool Cheat::Remove()
     {
         return false;
     };
+
+    Hacks::Remove();
 
     //Hacks::Remove();
 
