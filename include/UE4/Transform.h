@@ -2,6 +2,7 @@
 #include "Vector.h"
 #include "Quat.h"
 #include "Matrix.h"
+#include "Rotator.h"
 
 struct FTransform
 {
@@ -12,11 +13,11 @@ struct FTransform
 	char UnknownData01[0x4];
 
 	/** Default constructor. */
-	FTransform();
+	FTransform() : Rotation(0.f, 0.f, 0.f, 1.f), Translation(0.f), Scale3D(FVector::OneVector) {};
 
 	FMatrix ToMatrixWithScale() const;
 
 	FVector TransformPosition(const FVector& V) const;
 
-	FTransform(const FRotator& InRotation);
+	FTransform(const FRotator& InRotation) : Rotation(InRotation.Quaternion()), Translation(FVector::ZeroVector), Scale3D(FVector::OneVector) {};
 };

@@ -4,29 +4,13 @@ struct FQuat
 {
 public:
 
-	/** The quaternion's X-component. */
-	float X;
+	float X, Y, Z, W;
 
-	/** The quaternion's Y-component. */
-	float Y;
+	FQuat() : X(0.f), Y(0.f), Z(0.f), W(0.f) {};
 
-	/** The quaternion's Z-component. */
-	float Z;
+	FQuat::FQuat(float InX, float InY, float InZ, float InW) : X(InX), Y(InY), Z(InZ), W(InW) {}
 
-	/** The quaternion's W-component. */
-	float W;
+	FQuat(const struct FRotator& const R);
 
-	__forceinline FQuat() { X = Y = Z = W = 0.f; };
-
-	__forceinline FQuat::FQuat(float InX, float InY, float InZ, float InW)
-		: X(InX)
-		, Y(InY)
-		, Z(InZ)
-		, W(InW)
-	{
-	}
-
-	__forceinline FQuat(const struct FRotator& R);
-
-	__forceinline FVector RotateVector(struct FVector V) const;
+	FVector RotateVector(const struct FVector& const V) const;
 };

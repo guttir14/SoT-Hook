@@ -10,8 +10,6 @@
 #define STEAM
 #endif
 
-
-
 #if not STEAM
 #if 0
 #define UWPDEBUG
@@ -1247,10 +1245,11 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 ImGui::Columns(2, "CLM1", false);
                 const char* boxes[] = { "None", "2DBox", "3DBox" };
-                const char* bars[] = { "None", "2DRectLeft", "2DRectRight", "2DRectBottom", "2DRectTop" };
+                
                 ImGui::Text("Players");
                 if (ImGui::BeginChild("PlayersSettings", ImVec2(0.f, 310.f), true, 0))
                 {
+                    const char* bars[] = { "None", "2DRectLeft", "2DRectRight", "2DRectBottom", "2DRectTop" };
                     ImGui::Checkbox("Enable", &cfg.visuals.players.bEnable);
                     ImGui::Checkbox("Draw teammates", &cfg.visuals.players.bDrawTeam);
                     ImGui::Checkbox("Draw name", &cfg.visuals.players.bName);
@@ -1552,14 +1551,12 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     
 
                     AKrakenService* krakenService;
-                    ACharacter* localCharacter;
-                    if (cache.good)  { 
-                        krakenService = cache.gameState->KrakenService; 
-                        localCharacter = cache.localController->Character;
-                    }
                     bool isActive = false;
-                    krakenService->IsKrakenActive();
-                    if (krakenService) { krakenService->IsKrakenActive(); }
+                    if (cache.good)  
+                    { 
+                        krakenService = cache.gameState->KrakenService;
+                        if (krakenService) { krakenService->IsKrakenActive(); }
+                    }
                     ImGui::Text("IsKrakenActive: %d", isActive);
 
                     /*

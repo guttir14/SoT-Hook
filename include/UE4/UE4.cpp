@@ -3,7 +3,7 @@
 const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
 const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);
 
-float FVector2D::Size() { return sqrtf(X * X + Y * Y); }
+float FVector2D::Size() const  { return sqrtf(X * X + Y * Y); }
 
 void FMath::SinCos(float* ScalarSin, float* ScalarCos, float Value)
 {
@@ -85,19 +85,12 @@ FQuat FRotator::Quaternion() const
 
 FQuat::FQuat(const FRotator& R) { *this = R.Quaternion(); }
 
-FVector FQuat::RotateVector(FVector V) const
+FVector FQuat::RotateVector(const FVector& const V) const
 {
 	const FVector Q(X, Y, Z);
 	const FVector T = (Q ^ V) * 2.f;
 	const FVector Result = V + (T * W) + (Q ^ T);
 	return Result;
-}
-
-FTransform::FTransform()
-{
-	Rotation = { 0.f, 0.f, 0.f, 1.f };
-	Translation = 0.f;
-	Scale3D = FVector::OneVector;
 }
 
 FMatrix FTransform::ToMatrixWithScale() const
@@ -153,11 +146,4 @@ FMatrix FTransform::ToMatrixWithScale() const
 FVector FTransform::TransformPosition(const FVector& V) const
 {
 	return Rotation.RotateVector(Scale3D * V) + Translation;
-}
-
-FTransform::FTransform(const FRotator& InRotation)
-{
-	Rotation = InRotation.Quaternion();
-	Translation = FVector::ZeroVector;
-	Scale3D = FVector::OneVector;
 }
