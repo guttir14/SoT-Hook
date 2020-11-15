@@ -83,9 +83,9 @@ FQuat FRotator::Quaternion() const
 	return RotationQuat;
 }
 
-FQuat::FQuat(const FRotator& R) { *this = R.Quaternion(); }
+FQuat::FQuat(FRotator& R) { *this = R.Quaternion(); }
 
-FVector FQuat::RotateVector(const FVector& const V) const
+FVector FQuat::RotateVector(const FVector& V) const
 {
 	const FVector Q(X, Y, Z);
 	const FVector T = (Q ^ V) * 2.f;
@@ -143,7 +143,7 @@ FMatrix FTransform::ToMatrixWithScale() const
 	return OutMatrix;
 }
 
-FVector FTransform::TransformPosition(const FVector& V) const
+FVector FTransform::TransformPosition(FVector& V) const
 {
 	return Rotation.RotateVector(Scale3D * V) + Translation;
 }

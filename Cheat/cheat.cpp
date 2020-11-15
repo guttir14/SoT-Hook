@@ -6,16 +6,14 @@
 #include <HookLib/HookLib.h>
 #include <mutex>
 
-#if 1
-#define STEAM
-#endif
+
+#define STEAM 1
 
 #if not STEAM
 #if 0
 #define UWPDEBUG
 #endif
 #endif
-
 
 namespace fs = std::filesystem;
 
@@ -1456,6 +1454,17 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::SliderFloat("Pitch", &cfg.aim.harpoon.fPitch, 1.f, 102.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
                 }
                 ImGui::EndChild();
+
+                ImGui::NextColumn();
+
+                ImGui::Text("Cannon");
+                if (ImGui::BeginChild("CannonSettings", ImVec2(0.f, 180.f), true, 0))
+                {
+                    ImGui::Checkbox("Enable", &cfg.aim.cannon.bEnable);
+                    ImGui::Checkbox("Visible only", &cfg.aim.cannon.bVisibleOnly);
+                    ImGui::SliderFloat("Yaw", &cfg.aim.cannon.fYaw, 1.f, 100.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderFloat("Pitch", &cfg.aim.cannon.fPitch, 1.f, 102.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
+                }
 
                 ImGui::Columns();
 

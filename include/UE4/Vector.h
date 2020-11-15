@@ -10,7 +10,7 @@ struct FVector
 
 	FVector(float x, float y, float z) : X(x), Y(y), Z(z) {}
 
-	FVector::FVector(float InF) : X(InF), Y(InF), Z(InF) { }
+	FVector(float InF) : X(InF), Y(InF), Z(InF) { }
 
 	FVector(const FVector4& V) : X(V.X), Y(V.Y), Z(V.Z) {};
 
@@ -62,7 +62,7 @@ struct FVector
 
 	float operator|(const FVector& V) const { return X * V.X + Y * V.Y + Z * V.Z; }
 
-	FVector FVector::operator^(const FVector& V) const { return FVector(Y * V.Z - Z * V.Y,Z * V.X - X * V.Z,X * V.Y - Y * V.X); }
+	FVector operator^(const FVector& V) const { return FVector(Y * V.Z - Z * V.Y,Z * V.X - X * V.Z,X * V.Y - Y * V.X); }
 
 	static const FVector ZeroVector;
 

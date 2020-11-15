@@ -149,6 +149,12 @@ private:
                 float fYaw = 100.f;
                 float fPitch = 102.f;
             } harpoon;
+            struct {
+                bool bEnable = false;
+                bool bVisibleOnly = false;
+                float fYaw = 100.f;
+                float fPitch = 102.f;
+            } cannon;
         } aim;
 
         struct {

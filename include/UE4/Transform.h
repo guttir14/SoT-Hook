@@ -17,7 +17,7 @@ struct FTransform
 
 	FMatrix ToMatrixWithScale() const;
 
-	FVector TransformPosition(const FVector& V) const;
+	FVector TransformPosition(FVector& V) const;
 
 	FTransform(const FRotator& InRotation) : Rotation(InRotation.Quaternion()), Translation(FVector::ZeroVector), Scale3D(FVector::OneVector) {};
 };
