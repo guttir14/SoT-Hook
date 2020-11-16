@@ -1441,6 +1441,9 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
 
                 ImGui::NextColumn();
 
+                /*
+                
+               
                 ImGui::Text("Cannon");
                 if (ImGui::BeginChild("CannonSettings", ImVec2(0.f, 180.f), true, 0))
                 {
@@ -1450,6 +1453,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::SliderFloat("Pitch", &cfg.aim.cannon.fPitch, 1.f, 102.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
                 }
                 ImGui::EndChild();
+
+                 */
 
                 ImGui::Columns();
 
