@@ -190,11 +190,12 @@ private:
 			static bool RenderSkeleton(AController* const controller, USkeletalMeshComponent* const mesh, const FMatrix& comp2world, const std::pair<const BYTE*, const BYTE>* skeleton, int size, const ImVec4& color);
 		};
 	private:
+        static inline HRESULT(*fnPresent)(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) = nullptr;
+        static inline HRESULT(*fnResize)(IDXGISwapChain* swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) = nullptr;
 		static inline HRESULT(*PresentOriginal)(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) = nullptr;
 		static inline HRESULT(*ResizeOriginal)(IDXGISwapChain* swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) = nullptr;
 		static inline decltype(SetCursorPos)* SetCursorPosOriginal = nullptr;
         static inline decltype(SetCursor)* SetCursorOriginal = nullptr;
-        static inline bool bad = false;
 		static inline ID3D11Device* device = nullptr;
 		static inline ID3D11DeviceContext* context = nullptr;
 		static inline ID3D11RenderTargetView* renderTargetView = nullptr;

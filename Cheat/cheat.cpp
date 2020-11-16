@@ -191,47 +191,30 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
     if (!device)
     {
         ID3D11Texture2D* surface = nullptr;
-        if (FAILED(swapChain->GetBuffer(0, __uuidof(surface), reinterpret_cast<PVOID*>(&surface))))  { return PresentOriginal(swapChain, syncInterval, flags); };
-
-        if (!bad) { Logger::Log("ID3D11Texture2D* surface = %p\n", surface); }
-
         goto init;
     cleanup:
-        bad = true;
-        if (context)
-        {
-            context->Release();
-            context = nullptr;
-        }
-        else if (surface) surface->Release();
-        if (renderTargetView)
-        {
-            renderTargetView->Release();
-            renderTargetView = nullptr;
-        }
-        if (device)
-        {
-            device->Release();
-            device = nullptr;
-        }
-        return PresentOriginal(swapChain, syncInterval, flags);
+        Cheat::Remove();
+        if (surface) surface->Release();
+        return fnPresent(swapChain, syncInterval, flags);
     init:
+
+        if (FAILED(swapChain->GetBuffer(0, __uuidof(surface), reinterpret_cast<PVOID*>(&surface))))  { goto cleanup; };
+       Logger::Log("ID3D11Texture2D* surface = %p\n", surface); 
 
         if (FAILED(swapChain->GetDevice(__uuidof(device), reinterpret_cast<PVOID*>(&device)))) goto cleanup;
 
-        if (!bad) { Logger::Log("ID3D11Device* device = %p\n", device); }
+        Logger::Log("ID3D11Device* device = %p\n", device);
 
-        
         if (FAILED(device->CreateRenderTargetView(surface, nullptr, &renderTargetView))) goto cleanup;
 
-        if (!bad) { Logger::Log("ID3D11RenderTargetView* renderTargetView = %p\n", renderTargetView); }
+       Logger::Log("ID3D11RenderTargetView* renderTargetView = %p\n", renderTargetView);
 
         surface->Release();
         surface = nullptr;
 
         device->GetImmediateContext(&context);
 
-        if (!bad) { Logger::Log("ID3D11DeviceContext* context = %p\n", context); }
+        Logger::Log("ID3D11DeviceContext* context = %p\n", context);
 
         ImGui::CreateContext();
 
@@ -252,7 +235,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
         auto window = FindWindowA("Windows.UI.Core.CoreWindow", "Sea of Thieves");
         gameWindow = window;    
 #endif
-        if (!bad) { Logger::Log("gameWindow = %p\n", window); }
+        Logger::Log("gameWindow = %p\n", window);
+
         if (!ImGui_ImplWin32_Init(window)) goto cleanup;
         if (!ImGui_ImplDX11_Init(device, context)) goto cleanup;
         if (!ImGui_ImplDX11_CreateDeviceObjects()) goto cleanup;
@@ -1465,6 +1449,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     ImGui::SliderFloat("Yaw", &cfg.aim.cannon.fYaw, 1.f, 100.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::SliderFloat("Pitch", &cfg.aim.cannon.fPitch, 1.f, 102.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
                 }
+                ImGui::EndChild();
 
                 ImGui::Columns();
 
@@ -1630,7 +1615,7 @@ inline bool Cheat::Renderer::Init()
     static BYTE PresentSig[] = { 0x55, 0x57, 0x41, 0x56, 0x48, 0x8d, 0x6c, 0x24, 0x90, 0x48, 0x81, 0xec, 0x70, 0x01 };
     //static BYTE PresentHead[] = { 0x48, 0x89, 0x5c, 0x24, 0x10 };
     //BYTE* fnPresent = Tools::PacthFn(dxgi, PresentSig, sizeof(PresentSig), PresentHead, sizeof(PresentHead));
-    BYTE* fnPresent = Tools::FindFn(dxgi, PresentSig, sizeof(PresentSig));
+    fnPresent = reinterpret_cast<decltype(fnPresent)>(Tools::FindFn(dxgi, PresentSig, sizeof(PresentSig)));
     Logger::Log("IDXGISwapChain::Present: %p\n", fnPresent);
     if (!fnPresent) return false;
     
@@ -1638,7 +1623,7 @@ inline bool Cheat::Renderer::Init()
     static BYTE ResizeSig[] = { 0x48, 0x81, 0xec, 0xc0, 0x00, 0x00, 0x00, 0x48, 0xc7, 0x45, 0x1f };
     //static BYTE ResizeHead[] = { 0x48, 0x8b, 0xc4, 0x55, 0x41, 0x54 };  
     //BYTE* fnResize = Tools::PacthFn(dxgi, ResizeSig, sizeof(ResizeSig), ResizeHead, sizeof(ResizeHead));
-    BYTE* fnResize = Tools::FindFn(dxgi, ResizeSig, sizeof(ResizeSig));
+    fnResize = reinterpret_cast<decltype(fnResize)>(Tools::FindFn(dxgi, ResizeSig, sizeof(ResizeSig)));
     Logger::Log("IDXGISwapChain::ResizeBuffers: %p\n", fnResize);
     if (!fnResize) return false;
     
@@ -1649,6 +1634,7 @@ inline bool Cheat::Renderer::Init()
     };
 
     Logger::Log("PresentHook: %p\n", PresentHook);
+    Logger::Log("PresentOriginal: %p\n", PresentOriginal);
 
     if (!SetHook(fnResize, ResizeHook, reinterpret_cast<void**>(&ResizeOriginal)))
     {
@@ -1656,6 +1642,7 @@ inline bool Cheat::Renderer::Init()
     };
 
     Logger::Log("ResizeHook: %p\n", ResizeHook);
+    Logger::Log("ResizeOriginal: %p\n", ResizeOriginal);
 
     if (!SetHook(SetCursorPos, SetCursorPosHook, reinterpret_cast<void**>(&SetCursorPosOriginal)))
     {
@@ -1833,6 +1820,7 @@ void Cheat::Logger::Log(const char* format, ...)
     GetSystemTime(&rawtime);
     char buf[MAX_PATH];
     auto size = GetTimeFormatA(LOCALE_CUSTOM_DEFAULT, 0, &rawtime, "[HH':'mm':'ss] ", buf, MAX_PATH) - 1;
+    size += sprintf(buf + size, "[TID: 0x%X] ", GetCurrentThreadId());
     va_list argptr;
     va_start(argptr, format);
     size += vsprintf(buf + size, format, argptr);
