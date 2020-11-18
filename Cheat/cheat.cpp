@@ -4,7 +4,6 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_win32.h>
 #include <HookLib/HookLib.h>
-#include <mutex>
 
 
 #define STEAM 1
@@ -266,18 +265,20 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
         {
             memset(&cache, 0, sizeof(Cache));
             auto const world = *UWorld::GWorld;
+           
             if (!world) break;
             auto const game = world->GameInstance;
             if (!game) break;
             auto const gameState = world->GameState;
-            cache.gameState = gameState;
             if (!gameState) break;
+            cache.gameState = gameState;
             if (!game->LocalPlayers.Data) break;
+            
             auto const localPlayer = game->LocalPlayers[0];
             if (!localPlayer) break;
             auto const localController = localPlayer->PlayerController;
-            cache.localController = localController;
             if (!localController) break;
+            cache.localController = localController;
             auto const camera = localController->PlayerCameraManager;
             if (!camera) break;
             cache.localCamera = camera;
@@ -288,14 +289,13 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             const auto levels = world->Levels;
             if (!levels.Data) break;
             const auto localLoc = localCharacter->K2_GetActorLocation();
-
+           
             bool isWieldedWeapon = false;
             auto item = localCharacter->GetWieldedItem();
             if (item) isWieldedWeapon = item->isWeapon();
 
            // check isWieldedWeapon before accessing!
            auto const localWeapon = *reinterpret_cast<AProjectileWeapon**>(&item);
-
            ACharacter* attachObject = localCharacter->GetAttachParentActor();;
            bool isHarpoon = false;
            if (attachObject)
@@ -312,8 +312,6 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 float best = FLT_MAX;
                 float smoothness = 1.f;
             } aimBest;
-
-
             aimBest.target = nullptr;
             aimBest.best = FLT_MAX;
 
@@ -464,7 +462,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                         const int dist = localLoc.DistTo(location) * 0.01f;
                                         char name[0x64];
                                         const int len = desc->Title->multi(name, 0x50);
-                                        sprintf(name + len, " [%d]", dist);
+                                        snprintf(name + len, sizeof(name) - len, " [%d]", dist);
                                         Drawing::RenderText(name, screen, cfg.visuals.items.textCol);
                                     };
                                 }
@@ -546,7 +544,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     char name[0x30];
                                     const int len = playerName.multi(name, 0x20);
                                     const int dist = localLoc.DistTo(origin) * 0.01f;
-                                    sprintf(name + len, " [%d]", dist);
+                                    snprintf(name + len, sizeof(name) - len, " [%d]", dist);
                                     const float adjust = height * 0.05f;
                                     FVector2D pos = { headPos.X, headPos.Y - adjust };
                                     Drawing::RenderText(name, pos, cfg.visuals.players.textCol);
@@ -797,7 +795,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                         const int dist = localLoc.DistTo(origin) * 0.01f;
                                         char name[0x64];
                                         const int len = displayName->multi(name, 0x50);
-                                        sprintf(name + len, " [%d]", dist);
+                                        snprintf(name + len, sizeof(name) - len, " [%d]", dist);
                                         const float adjust = height * 0.05f;
                                         FVector2D pos = { headPos.X, headPos.Y - adjust };
                                         Drawing::RenderText(name, pos, cfg.visuals.animals.textCol);
@@ -998,7 +996,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                                     auto len = island->LocalisedName->multi(name, 0x50);
                                     
                                     
-                                    sprintf(name + len, " [%d]", dist);
+                                    snprintf(name + len, sizeof(name) - len, " [%d]", dist);
                                     Drawing::RenderText(name, screen, cfg.visuals.islands.textCol);
                                     
                                     
@@ -1146,15 +1144,15 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                             ImGui::Text("Name"); ImGui::NextColumn();
                             ImGui::Text("Activity"); ImGui::NextColumn();
                             ImGui::Separator();
-                            for (auto i = 0; i < crews.Count; i++)
+                            for (uint32_t i = 0; i < crews.Count; i++)
                             {
-                                auto& const crew = crews[i];
+                                auto& crew = crews[i];
                                 auto players = crew.Players;
                                 if (players.Data)
                                 {
-                                    for (auto k = 0; k < players.Count; k++)
+                                    for (uint32_t k = 0; k < players.Count; k++)
                                     {
-                                        auto& const player = players[k];
+                                        auto& player = players[k];
                                         char buf[0x64];
                                         player->PlayerName.multi(buf, 0x50);
                                         ImGui::Selectable(buf);
@@ -1825,10 +1823,10 @@ void Cheat::Logger::Log(const char* format, ...)
     GetSystemTime(&rawtime);
     char buf[MAX_PATH];
     auto size = GetTimeFormatA(LOCALE_CUSTOM_DEFAULT, 0, &rawtime, "[HH':'mm':'ss] ", buf, MAX_PATH) - 1;
-    size += sprintf(buf + size, "[TID: 0x%X] ", GetCurrentThreadId());
+    size += snprintf(buf + size, sizeof(buf) - size, "[TID: 0x%X] ", GetCurrentThreadId());
     va_list argptr;
     va_start(argptr, format);
-    size += vsprintf(buf + size, format, argptr);
+    size += vsnprintf(buf + size, sizeof(buf) - size, format, argptr);
     WriteFile(file, buf, size, NULL, NULL);
     va_end(argptr);
 #endif
