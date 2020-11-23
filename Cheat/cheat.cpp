@@ -312,6 +312,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 float best = FLT_MAX;
                 float smoothness = 1.f;
             } aimBest;
+
             aimBest.target = nullptr;
             aimBest.best = FLT_MAX;
 
@@ -1113,10 +1114,31 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
             {
                 if (cfg.misc.client.bEnable) 
                 {
+                    if (cfg.misc.client.bShipInfo)
+                    {
+                        auto ship = localCharacter->GetCurrentShip();
+                        if (ship)
+                        {
+                            FVector velocity = ship->GetVelocity() / 100.f;
+                            char buf[0xFF];
+                            sprintf(buf, "X: %.0f Y: %.0f Z: %.0f", velocity.X, velocity.Y, velocity.Z);
+
+                            FVector2D pos {10.f, 50.f};
+                            ImVec4 col{ 1.f,1.f,1.f,1.f };
+                            Drawing::RenderText(buf, pos, col, true, false);
+
+                            auto speed = velocity.Size();
+                            sprintf(buf, "Speed: %.0f", speed);
+                            pos.Y += 15.f;
+                            Drawing::RenderText(buf, pos, col, true, false);
+
+                        }
+                    }
                     if (localController->IdleDisconnectEnabled && cfg.misc.client.bIdleKick)
                     {
                         localController->IdleDisconnectEnabled = false;
                     }
+
                 }
                 if (cfg.misc.game.bEnable)
                 {
@@ -1124,8 +1146,8 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                     {
                         ImGui::PopStyleColor();
                         ImGui::PopStyleVar(2);
-                        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.25f, io.DisplaySize.y * 0.25f), ImGuiCond_Once);
-                        ImGui::Begin("PlayersList", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+                        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.13f, io.DisplaySize.y * 0.25f), ImGuiCond_Once);
+                        ImGui::Begin("PlayersList", 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
                         
                         auto shipsService = gameState->ShipService;
                         if (shipsService)
@@ -1474,6 +1496,7 @@ HRESULT Cheat::Renderer::PresentHook(IDXGISwapChain* swapChain, UINT syncInterva
                 if (ImGui::BeginChild("ClientSettings", ImVec2(0.f, 180.f), true, 0))
                 {
                     ImGui::Checkbox("Enable", &cfg.misc.client.bEnable);
+                    ImGui::Checkbox("Ship speed", &cfg.misc.client.bShipInfo);
                     ImGui::Checkbox("Disable idle kick", &cfg.misc.client.bIdleKick);
                     ImGui::Separator();
                     if (ImGui::Button("Save settings"))

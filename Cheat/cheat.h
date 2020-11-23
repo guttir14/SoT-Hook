@@ -161,6 +161,7 @@ private:
             bool bEnable = false;
             struct {
                 bool bEnable = false;
+                bool bShipInfo = false;
                 bool bIdleKick = false;
             } client;
             struct {

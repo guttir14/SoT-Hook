@@ -19,7 +19,7 @@ IDXGISwapChain* swapchain = nullptr;
 ID3D11RenderTargetView* view = nullptr;
 
 inline bool CreateView() {
-	ID3D11Texture2D* buffer;
+	ID3D11Texture2D* buffer = nullptr;
 	if (FAILED(swapchain->GetBuffer(0, __uuidof(buffer), reinterpret_cast<PVOID*>(&buffer)))) return false;
 	if (FAILED(device->CreateRenderTargetView(buffer, nullptr, &view))) return false;
 	buffer->Release();

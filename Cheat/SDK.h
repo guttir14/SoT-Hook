@@ -753,7 +753,7 @@ struct UCharacterMovementComponent {
 
 
 struct AHarpoonLauncher {
-	char pad[0x0B90];
+	char pad[0x0BA0];
 	FRotator rotation;
 
 	void Server_RequestAim(float InPitch, float InYaw)
