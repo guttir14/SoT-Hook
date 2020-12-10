@@ -1,3 +1,5 @@
+#### The game has got an update, don't write me if something doesn't work.
+
 # SoT-Hook
 Sea of Thieves internal cheat
 
